@@ -1,0 +1,51 @@
+#ifndef LIBBMCXX_NEW_INCLUDED
+#define LIBBMCXX_NEW_INCLUDED
+
+#include <exception>
+
+// Use undocumented GCC magic for size_t
+#define __need_size_t 1
+#include <stddef.h>
+#undef __need_size_t
+
+namespace std {
+
+struct nothrow_t {
+    explicit nothrow_t() = default;
+    char __bmcxx_empty[0]; // make the structure have 0 size
+};
+
+class bad_alloc : public exception {
+public:
+    bad_alloc() noexcept {}
+    bad_alloc(const bad_alloc &__other) noexcept {}
+
+    bad_alloc &operator=(const bad_alloc &__other) noexcept { return *this; }
+
+    virtual const char *what() const noexcept override;
+};
+
+} // namespace std
+
+// non-throwing new/delete
+void * operator new(size_t count, const std::nothrow_t &tag) noexcept;
+void * operator new[](size_t count, const std::nothrow_t &tag) noexcept;
+void operator delete(void *place, const std::nothrow_t &tag) noexcept;
+void operator delete[](void *place, const std::nothrow_t &tag) noexcept;
+
+// placement new/delete
+inline void * operator new(size_t count, void *addr) noexcept
+{
+    return addr;
+}
+
+inline void operator delete(void *addr, void *place) noexcept {}
+
+inline void * operator new[](size_t count, void *addr) noexcept
+{
+    return addr;
+}
+
+inline void operator delete[](void *addr, void *place) noexcept {}
+
+#endif

@@ -1,0 +1,6 @@
+#ifndef LIBBMCXX_INCLUDED_CSTDDEF
+#define LIBBMCXX_INCLUDED_CSTDDEF 1
+
+#include <stddef.h>
+
+#endif

@@ -1,0 +1,179 @@
+#ifndef LIBBMCXX_TYPE_TRAITS_INCLUDED
+#define LIBBMCXX_TYPE_TRAITS_INCLUDED 1
+
+namespace std {
+
+namespace libstdbmcxx_type_traits {
+
+// use a local declval so we don't have to #include <utility>
+template<class T>
+T&& declval() noexcept;
+
+}
+
+// integral_constant
+
+template <typename T, T val>
+struct integral_constant {
+    static constexpr T value  = val;
+    using value_type = T;
+    using type = integral_constant;
+    constexpr operator value_type() const noexcept { return value; }
+    // C++14:
+    constexpr value_type operator()() const noexcept { return value; }
+};
+
+using true_type = integral_constant<bool, true>;
+using false_type = integral_constant<bool, false>;
+
+// is_void
+
+template <typename T>
+struct is_void : false_type {};
+
+template <>
+struct is_void<void> : true_type {};
+
+// is_reference
+
+template <typename T>
+struct is_reference : false_type {};
+
+template <typename T>
+struct is_reference<T &> : true_type {};
+
+template <typename T>
+struct is_reference<T &&> : true_type {};
+
+// is_same
+
+template <typename T, typename U>
+struct is_same : false_type {};
+
+template <typename T>
+struct is_same<T,T> : true_type {};
+
+// is...constructible
+
+namespace libstdbmcxx_type_traits {
+
+template <class... Args> struct pack {
+    template <typename T, typename = void> struct constructible : false_type {};
+
+    template <typename T> struct constructible<T, decltype(void(T(declval<Args>()...)))>
+        : true_type {};
+
+    template <typename T, typename = true_type> struct nothrow_constructible : false_type {};
+
+    template <typename T> struct nothrow_constructible<T, integral_constant<bool,
+        noexcept(T(declval<Args>()...))>> : true_type {};
+};
+
+} // namespace libstdbmcxx_type_traits
+
+template <class T, class... Args>
+struct is_constructible : libstdbmcxx_type_traits::pack<Args...>::template constructible<T> { };
+
+template <class T, class... Args>
+struct is_nothrow_constructible
+        : libstdbmcxx_type_traits::pack<Args...>::template nothrow_constructible<T> { };
+
+template <class T>
+struct is_default_constructible : libstdbmcxx_type_traits::pack<>::template constructible<T> { };
+
+template <class T>
+struct is_nothrow_default_constructible
+        : libstdbmcxx_type_traits::pack<>::template nothrow_constructible<T> { };
+
+template <class T>
+struct is_copy_constructible
+        : integral_constant<bool, is_constructible<T, const T&>::value> { };
+
+template <class T, typename = true_type>
+struct is_nothrow_copy_constructible : false_type { };
+
+template <class T>
+struct is_nothrow_copy_constructible<T, integral_constant<bool,
+            noexcept(T(libstdbmcxx_type_traits::declval<const T &>()))>>
+        : true_type { };
+
+template <class T>
+struct is_move_constructible
+        : integral_constant<bool, is_constructible<T, T&&>::value> { };
+
+template <class T, typename = true_type>
+struct is_nothrow_move_constructible : false_type { };
+
+template <class T>
+struct is_nothrow_move_constructible<T, integral_constant<bool,
+            noexcept(T(libstdbmcxx_type_traits::declval<T &&>()))>>
+        : true_type { };
+
+// remove_reference
+
+template <typename T>
+struct remove_reference
+{
+    using type = T;
+};
+
+template <typename T>
+struct remove_reference<T &>
+{
+    using type = T;
+};
+
+template <typename T>
+struct remove_reference<T &&>
+{
+    using type = T;
+};
+
+// enable_if
+
+template <bool B, class T = void>
+struct enable_if { };
+
+template <class T>
+struct enable_if<true, T>
+{
+    typedef T type;
+};
+
+template <bool B, class T = void>
+using enable_if_t = typename enable_if<B,T>::type;
+
+// is_convertible
+
+namespace libstdbmcxx_type_traits {
+
+template <class T, typename U = void>
+struct returnable : false_type {  };
+
+// test that a type is "returnable". Notable exceptions include arrays.
+// Apparently is_convertible should return true only if the target type is returnable.
+template <class T>
+struct returnable<T, decltype(void(static_cast<T(*)()>(nullptr)))>
+    : true_type { };
+
+// function which accepts a parameter of type T. This can be used to test for possibility of
+// implicitly converting a value (of some type) to type T.
+template <class T> inline void consume(T t) {}
+
+} // namespace libstdbmcxx_type_traits
+
+template <class From, class To, typename Enabler = true_type>
+struct is_convertible : false_type { };
+
+template <class From, class To>
+struct is_convertible<From, To,
+    integral_constant<bool,
+        (is_void<decltype(libstdbmcxx_type_traits::consume<To>(libstdbmcxx_type_traits::declval<From>()))>::value
+        && libstdbmcxx_type_traits::returnable<To>::value)
+        || (std::is_void<To>() && std::is_void<From>())
+    > >
+    : true_type {};
+
+} // namespace std
+
+#endif

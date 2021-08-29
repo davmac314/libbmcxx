@@ -1,0 +1,6 @@
+#ifndef LIBBMCXX_INCLUDED_CSTDLIB
+#define LIBBMCXX_INCLUDED_CSDTLIB 1
+
+#include <stdlib.h>
+
+#endif

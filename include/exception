@@ -1,0 +1,29 @@
+#ifndef _BMCXX_EXCEPTION_INCLUDED
+#define _BMCXX_EXCEPTION_INCLUDED 1
+
+namespace std {
+
+// (removed in C++17)
+typedef void (*unexpected_handler)();
+
+typedef void (*terminate_handler)();
+
+[[noreturn]] void terminate() noexcept;
+
+// We don't support set_terminate:
+//   std::terminate_handler set_terminate(std::terminate_handler f) noexcept;
+
+class exception {
+public:
+    exception() noexcept {}
+    exception(const exception &__other) noexcept {}
+    virtual ~exception();
+
+    exception &operator=(const exception &__other) noexcept { return *this; }
+
+    virtual const char *what() const noexcept;
+};
+
+}
+
+#endif

@@ -1,0 +1,6 @@
+#ifndef LIBBMCXX_INCLUDED_CSTDINT
+#define lIBBMCXX_INCLUDED_CSTDINT 1
+
+#include <stdint.h>
+
+#endif

@@ -1,0 +1,6 @@
+#ifndef _BMCXX_INCLUDED_CSTRING
+#define _BMCXX_INCLUDED_CSTRING 1
+
+#include <string.h>
+
+#endif

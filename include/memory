@@ -1,0 +1,139 @@
+#ifndef LIBBMCXX_MEMORY_INCLUDED
+#define LIBBMCXX_MEMORY_INCLUDED 1
+
+#include <type_traits>
+#include <utility>
+
+namespace std {
+
+template <class T> struct default_delete {
+    constexpr default_delete() noexcept = default;
+
+    template <class U, typename E = typename enable_if_t<is_convertible<U*, T*>::value>::type>
+    default_delete(const default_delete<U> &other) noexcept { }
+
+    void operator()(T *t) const noexcept { delete t; }
+
+    char __empty[0]; // make zero-sized
+};
+
+template <class T> struct default_delete<T[]> {
+    constexpr default_delete() noexcept = default;
+
+    template <class U, typename = typename enable_if_t<is_convertible<U(*)[], T(*)[]>::value>::type>
+    default_delete(const default_delete<U[]> &other) noexcept { }
+
+    template <typename U, typename = typename enable_if_t<is_convertible<U(*)[], T(*)[]>::value>::type>
+    void operator()(T *t) const noexcept { delete[] t; }
+
+    char __empty[0]; // make zero-sized
+};
+
+namespace libbmcxx_memory {
+
+template <typename T>
+T&& declval();
+
+// deleter_pointer<Deleter,T>::type - the 'pointer' member of the specified Deleter if it exists,
+//  or 'T *' otherwise
+
+template <class Deleter, class T, typename = void>
+struct deleter_pointer
+{
+    using type = T *;
+};
+
+template <class Deleter, class T>
+struct deleter_pointer<Deleter, T, decltype(void(declval<typename std::remove_reference<Deleter>::type::pointer>()))>
+{
+    using type = typename std::remove_reference<Deleter>::type::pointer;
+};
+
+} // libbmcxx_memory
+
+template <class T, class Deleter = std::default_delete<T>>
+class unique_ptr {
+public:
+    using pointer = typename libbmcxx_memory::deleter_pointer<Deleter, T>::type;
+    using element_type = T;
+    using deleter_type = Deleter;
+
+private:
+    pointer __underlying_ptr = nullptr;
+    deleter_type __deleter;
+
+public:
+    template <typename D = Deleter,
+            typename = enable_if_t<is_nothrow_default_constructible<D>::value>>
+    constexpr unique_ptr() noexcept : __deleter({}) {}
+
+    template <typename D = Deleter,
+            typename = enable_if_t<is_nothrow_default_constructible<D>::value>>
+    constexpr unique_ptr(decltype(nullptr)) noexcept : __deleter({}) {}
+
+    template <typename D = Deleter,
+            typename = enable_if_t<is_nothrow_default_constructible<D>::value>>
+    explicit unique_ptr(pointer p) noexcept : __underlying_ptr(p) {}
+
+    // note 'const deleter_t &d' will collapse to a non-const if deleter_t is non-const ref
+    template <typename D = Deleter,
+            typename = enable_if_t<is_nothrow_copy_constructible<D>::value
+            || is_reference<D>::value>>
+    unique_ptr(pointer p, const deleter_type &d) noexcept
+        : __underlying_ptr(p), __deleter(forward<decltype(d)>(d)) {}
+
+    template <typename D = Deleter,
+            typename = enable_if_t<is_nothrow_move_constructible<D>::value
+            && !is_reference<D>::value>>
+    unique_ptr(pointer p, deleter_type &&d) noexcept
+        : __underlying_ptr(p), __deleter(forward<decltype(d)>(d)) {}
+
+    template <typename D = Deleter,
+            typename = enable_if_t<is_reference<D>::value>>
+    unique_ptr(pointer p, typename remove_reference<D>::type &&d) = delete;
+
+    unique_ptr(unique_ptr &&other) noexcept
+        : __underlying_ptr(other.release()), __deleter(other.__deleter) {}
+
+    unique_ptr &operator=(decltype(nullptr)) noexcept
+    {
+        if (__underlying_ptr) __deleter(__underlying_ptr);
+        __underlying_ptr = nullptr;
+        return *this;
+    }
+
+    bool operator==(decltype(nullptr)) noexcept { return __underlying_ptr == nullptr; }
+
+    pointer release() noexcept
+    {
+        auto r = __underlying_ptr;
+        __underlying_ptr = nullptr;
+        return r;
+    }
+
+    void reset(pointer ptr = pointer()) noexcept
+    {
+        auto __old_ptr = __underlying_ptr;
+        __underlying_ptr = ptr;
+        if (__old_ptr) __deleter(__old_ptr);
+    }
+
+    pointer get() noexcept
+    {
+        return __underlying_ptr;
+    }
+
+    ~unique_ptr()
+    {
+        if (__underlying_ptr) __deleter(__underlying_ptr);
+    }
+};
+
+template <class T, class... Args>
+unique_ptr<T> make_unique(Args&&... args) {
+    return unique_ptr<T>(new T(args...));
+}
+
+} // namespace std
+
+#endif
