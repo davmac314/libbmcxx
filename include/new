@@ -15,6 +15,13 @@ struct nothrow_t {
     char __bmcxx_empty[0]; // make the structure have 0 size
 };
 
+namespace {
+
+// (this is really supposed to be an extern)
+nothrow_t nothrow;
+
+} // namepace
+
 class bad_alloc : public exception {
 public:
     bad_alloc() noexcept {}
