@@ -86,6 +86,20 @@ struct remove_extent<T[I]> { using type = T; };
 
 template <typename T> using remove_extent_t = typename remove_extent<T>::type;
 
+// bounded/unbounded array (C++20)
+
+template <typename T>
+struct is_bounded_array : false_type { };
+
+template <typename T, decltype(sizeof(0)) I>
+struct is_bounded_array<T[I]> : true_type { };
+
+template <typename T>
+struct is_unbounded_array : false_type { };
+
+template <typename T>
+struct is_unbounded_array<T[]> : true_type { };
+
 // is_same
 
 template <typename T, typename U>
