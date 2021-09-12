@@ -22,6 +22,7 @@ Currently provides (at least partial implementations of):
 - various standard new/delete overloads (which ultimately call `malloc`/`free`)
 - some of `type_traits`, `limits`
 - some standard exception types via `exception`, `stdexcept`
+- very little of `algorithm`
 
 Client application must provide:
 - `abort()`
@@ -32,6 +33,7 @@ TODO:
 - optional thread support
 - optional floating-point support
 - optional heap allocator implementation (i.e. implementation of malloc/free etc)
+- custom allocator support for collections/strings
 - make "assert" useful
 - option for non-replaceable versions of new/delete variants which act sensibly.
   (see for example nothrow new, which to be standard-conformant has to be implemented
