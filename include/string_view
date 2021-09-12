@@ -37,10 +37,10 @@ public:
     constexpr basic_string_view(const value_type *s, size_type c) noexcept : __start(s), __end(s+c) { }
     constexpr basic_string_view(const value_type *s) noexcept : __start(s), __end(s + traits_type::length(s)) { }
 
-    constexpr iterator begin() const noexcept { return __start; }
-    constexpr iterator cbegin() const noexcept { return __start; }
-    constexpr iterator end() const noexcept { return __end; }
-    constexpr iterator cend() const noexcept { return __end; }
+    constexpr const_iterator begin() const noexcept { return __start; }
+    constexpr const_iterator cbegin() const noexcept { return __start; }
+    constexpr const_iterator end() const noexcept { return __end; }
+    constexpr const_iterator cend() const noexcept { return __end; }
 
     constexpr size_type size() const noexcept { return __end - __start; }
     constexpr size_type length() const noexcept { return __end - __start; }
@@ -61,12 +61,13 @@ public:
         __end = __newend;
     }
 
-//    constexpr basic_string_view substring(size_type pos, size_type n)
-//    {
-//        if  (__start + pos > __end)
-//
-//        return basic_string_view(__start + pos, n);
-//    }
+    constexpr basic_string_view substring(size_type pos, size_type n)
+    {
+        if  (__start + pos > __end) throw out_of_range {"string_view substring out-of-range"};
+
+        size_type substrlen = size() - pos;
+        return basic_string_view(__start + pos, substrlen);
+    }
 
     constexpr int compare(basic_string_view v) const noexcept
     {
@@ -86,12 +87,35 @@ public:
         // This implementation is equivalent if traits_type::compare behaves as required:
         size_type len = length();
         for (size_type i = 0; i < len; ++i) {
-            if (s[i] == value_type()) return 1;
+            if (traits_type::eq(s[i], value_type())) return 1;
             if (traits_type::lt(__start[i], s[i])) return -1;
             if (traits_type::lt(s[i], __start[i])) return 1;
         }
         if (s[len] == value_type()) return 0;
         return -1; // this is shorter
+    }
+
+    constexpr bool operator==(basic_string_view &other) const noexcept { return compare(other) == 0; }
+    constexpr bool operator!=(basic_string_view &other) const noexcept { return compare(other) != 0; }
+    constexpr bool operator<(basic_string_view &other) const noexcept { return compare(other) < 0; }
+    constexpr bool operator<=(basic_string_view &other) const noexcept { return compare(other) <= 0; }
+    constexpr bool operator>(basic_string_view &other) const noexcept { return compare(other) > 0; }
+    constexpr bool operator>=(basic_string_view &other) const noexcept { return compare(other) >= 0; }
+
+    constexpr bool starts_with(const value_type *s) const noexcept
+    {
+        size_type len = length();
+        for (size_type i = 0; i < len; ++i) {
+            if (traits_type::eq(s[i], value_type())) return true;
+            if (!traits_type::eq(s[i], __start[i])) return false;
+        }
+        return traits_type::eq(s[len], value_type());
+    }
+
+    constexpr bool starts_with(const basic_string_view &s) const noexcept
+    {
+        if (s.length() > length()) return false;
+        return traits_type::compare(__start, s.__start, s.length()) == 0;
     }
 };
 

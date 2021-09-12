@@ -20,6 +20,13 @@ public:
     }
 };
 
+class out_of_range : public logic_error
+{
+public:
+    out_of_range(const char *what_arg) : logic_error(what_arg) { }
+    out_of_range &operator=(const out_of_range &other) = default;
+};
+
 } // namespace std
 
 #endif
