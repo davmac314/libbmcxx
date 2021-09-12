@@ -215,6 +215,33 @@ struct is_convertible<From, To,
     > >
     : true_type {};
 
+// is_assignable
+
+template <class To, class From, typename Enabler = true_type>
+struct is_assignable : false_type { };
+
+template <class To, class From>
+struct is_assignable<To, From, std::integral_constant<bool,
+        std::is_void<decltype(void(libstdbmcxx_type_traits::declval<To>() = libstdbmcxx_type_traits::declval<From>()))>::value>> : true_type { };
+
+// This would also work instead of the above, but requires GCC 8+:
+//template <class To, class From>
+//struct is_assignable : integral_constant<bool, __is_assignable(To,From)> { };
+
+template <class To, class From, typename Enabler = true_type>
+struct is_trivially_assignable : integral_constant<bool, __is_trivially_assignable(To,From)> { };
+
+// This works only for Clang:
+//template <class To, class From>
+//struct is_nothrow_assignable : integral_constant<bool, __is_nothrow_assignable(To,From)> { };
+
+template <class To, class From, typename Enabler = true_type>
+struct is_nothrow_assignable : false_type { };
+
+template <class To, class From>
+struct is_nothrow_assignable<To, From, integral_constant<bool,
+        noexcept(libstdbmcxx_type_traits::declval<To>() = libstdbmcxx_type_traits::declval<From>())>> : true_type { };
+
 } // namespace std
 
 #endif
