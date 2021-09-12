@@ -1,5 +1,5 @@
 CXXOBJS=terminate.o new_r.o new_n.o new_a.o new_an.o delete_r.o delete_rs.o delete_n.o delete_a.o \
-	delete_as.o delete_an.o exception.o bad_alloc.o
+	delete_as.o delete_an.o exception.o bad_alloc.o logic_error.o
 COBJS=memcpy.o memset.o
 
 # default, should be overridden:

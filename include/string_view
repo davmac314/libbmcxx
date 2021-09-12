@@ -1,0 +1,105 @@
+#ifndef LIBBMCXX_STRING_VIEW_INCLUDED
+#define LIBBMCXX_STRING_VIEW_INCLUDED 1
+
+#include <string>
+#include <utility>
+#include <stdexcept>
+
+namespace std {
+
+using size_t = decltype(sizeof(0));
+using ptrdiff_t = decltype(declval<char *>() - declval<char *>());
+
+template <class CharT, class Traits = std::char_traits<CharT>>
+class basic_string_view
+{
+public:
+    using traits_type = Traits;
+    using value_type = CharT;
+    using pointer = CharT *;
+    using const_pointer = const CharT *;
+    using reference = CharT &;
+    using const_reference = const CharT &;
+
+    using iterator = pointer;
+    using const_iterator = const_pointer;
+
+    using size_type = size_t;
+    using difference_type = ptrdiff_t;
+
+private:
+    const_pointer __start;
+    const_pointer __end;
+
+public:
+    constexpr basic_string_view() noexcept : __start(nullptr), __end(nullptr) { }
+    constexpr basic_string_view(const basic_string_view &other) noexcept = default;
+    constexpr basic_string_view(const value_type *s, size_type c) noexcept : __start(s), __end(s+c) { }
+    constexpr basic_string_view(const value_type *s) noexcept : __start(s), __end(s + traits_type::length(s)) { }
+
+    constexpr iterator begin() const noexcept { return __start; }
+    constexpr iterator cbegin() const noexcept { return __start; }
+    constexpr iterator end() const noexcept { return __end; }
+    constexpr iterator cend() const noexcept { return __end; }
+
+    constexpr size_type size() const noexcept { return __end - __start; }
+    constexpr size_type length() const noexcept { return __end - __start; }
+    constexpr bool empty() const noexcept { return __start == __end; }
+
+    constexpr const_reference operator[](size_type pos) const noexcept { return __start[pos]; }
+    constexpr const_pointer data() const noexcept { return __start; }
+
+    constexpr void remove_prefix(size_type n) noexcept { __start += n; }
+    constexpr void remove_suffix(size_type n) noexcept { __end -= n; }
+    constexpr void swap(basic_string_view &v) noexcept
+    {
+        auto __newstart = v.__start;
+        auto __newend = v.__end;
+        v.__start = __start;
+        v.__end = __end;
+        __start = __newstart;
+        __end = __newend;
+    }
+
+//    constexpr basic_string_view substring(size_type pos, size_type n)
+//    {
+//        if  (__start + pos > __end)
+//
+//        return basic_string_view(__start + pos, n);
+//    }
+
+    constexpr int compare(basic_string_view v) const noexcept
+    {
+        size_type clen = v.length() < length() ? v.length() : length();
+        int r = traits_type::compare(data(), v.data(), clen);
+        if (r != 0) return r;
+        if (v.length() < length()) return 1;
+        if (v.length() == length()) return 0;
+        return -1;
+    }
+
+    constexpr int compare(const value_type *s) const noexcept
+    {
+        // specified to be equivalent to:
+        //     return compare(basic_string_view(s));
+        // however, that is inefficient as it needs to determine length of s.
+        // This implementation is equivalent if traits_type::compare behaves as required:
+        size_type len = length();
+        for (size_type i = 0; i < len; ++i) {
+            if (s[i] == value_type()) return 1;
+            if (traits_type::lt(__start[i], s[i])) return -1;
+            if (traits_type::lt(s[i], __start[i])) return 1;
+        }
+        if (s[len] == value_type()) return 0;
+        return -1; // this is shorter
+    }
+};
+
+using string_view = basic_string_view<char>;
+using wstring_view = basic_string_view<wchar_t>;
+using u16string_view = basic_string_view<char16_t>;
+using u32string_view = basic_string_view<char32_t>;
+
+} // namespace std
+
+#endif

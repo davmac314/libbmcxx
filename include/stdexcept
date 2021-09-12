@@ -1,0 +1,25 @@
+#ifndef LIBBMCXX_STDEXCEPT_INCLUDED
+#define LIBBMCXX_STDEXCEPT_INCLUDED 1
+
+#include <exception>
+#include <memory>
+
+namespace std {
+
+class logic_error : public exception
+{
+    shared_ptr<char[]> what_ptr;
+public:
+    logic_error(const char *what_arg);
+    logic_error(const logic_error &other) noexcept = default;
+    logic_error &operator=(const logic_error &other) noexcept = default;
+
+    const char *what()
+    {
+        return &what_ptr[0];
+    }
+};
+
+} // namespace std
+
+#endif

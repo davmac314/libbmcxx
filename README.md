@@ -13,13 +13,15 @@ options for excluding exception-throwing code etc.
 
 You may use and redistribute this code, in any form, without restriction.
 
-Currently provides:
+Currently provides (at least partial implementations of):
 - C "string" functions: `memcpy`, `memset`
 - various C++ header wrappers (`cstddef`, `cstdint`, etc)
-- usable (though not 100% complete) implementations of `unique_ptr` and `shared_ptr`
-- `std::terminate` (calls `abort`)
+- `string_view` and variants
+- `unique_ptr` and `shared_ptr`
+- `terminate()` (calls `abort`)
 - various standard new/delete overloads (which ultimately call `malloc`/`free`)
-- at least some of `type_traits`, `limits`
+- some of `type_traits`, `limits`
+- some standard exception types via `exception`, `stdexcept`
 
 Client application must provide:
 - `abort()`
@@ -29,7 +31,7 @@ Client application must provide:
 TODO:
 - optional thread support
 - optional floating-point support
-- optional heap allocator implementation
+- optional heap allocator implementation (i.e. implementation of malloc/free etc)
 - make "assert" useful
 - option for non-replaceable versions of new/delete variants which act sensibly.
   (see for example nothrow new, which to be standard-conformant has to be implemented
