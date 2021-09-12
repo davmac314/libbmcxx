@@ -1,0 +1,268 @@
+#ifndef LIBBMCXX_VECTOR_INCLUDED
+#define LIBBMCXX_VECTOR_INCLUDED 1
+
+#include <algorithm>
+#include <type_traits>
+#include <utility>
+#include <limits>
+#include <new>
+
+namespace std {
+
+namespace __bmcxx_vector {
+
+using size_type = decltype(sizeof(0));
+
+// Helper function - copy/move vector contents from old to new array
+// (choice of copy vs move depends on whether we can move without throwing)
+template <typename T,
+        bool __use_move = (is_nothrow_move_constructible<T>::value || !is_copy_constructible<T>::value),
+        bool __copy_is_noexcept = is_nothrow_copy_constructible<T>::value>
+struct __move_helper
+{
+    static void move(T *from, T *to, size_type count) noexcept
+    {
+        // nothrow copy; we can safely copy-and-destruct as we go
+        for (size_type i = 0; i < count; i++) {
+            new (&to[i]) T(from[i]);
+            from[i].T::~T();
+        }
+    }
+};
+
+template <typename T>
+struct __move_helper<T, false, false>
+{
+    static void move(T *from, T *to, size_type count)
+    {
+        // copy may throw. Wait until the whole vector is copied before destructing.
+        size_type i;
+        try {
+            for (i = 0; i < count; i++) {
+                new (&to[i]) T(from[i]);
+            }
+
+            for (i = 0; i < count; i++) {
+                from[i].T::~T();
+            }
+        }
+        catch (...) {
+            // we have to destruct any constructed items
+            while (i > 0) {
+                to[i].T::~T();
+            }
+            throw;
+        }
+    }
+};
+
+template <typename T, bool __dontcare>
+struct __move_helper<T, true, __dontcare>
+{
+    // we always use noexcept, even if move may throw we cannot safely recover, so best
+    // to terminate.
+    static void move(T *from, T *to, size_type count) noexcept
+    {
+        for (size_type i = 0; i < count; i++) {
+            new (&to[i]) T(std::move(from[i]));
+            from[i].T::~T();
+        }
+    }
+};
+
+} // namespace __bmcxx_vector
+
+template <class T>
+class vector
+{
+public:
+    using size_type = decltype(sizeof(0));
+    using pointer = T *;
+    using const_pointer = const T *;
+    using reference = T &;
+    using const_reference = const T &;
+    using difference_type = decltype(declval<pointer>() - declval<pointer>());
+    using iterator = pointer;
+    using const_iterator = const_pointer;
+
+private:
+    T *__storage = nullptr;
+    size_type __limit = 0;
+    size_type __capacity = 0;
+
+    bool __enlarge_capacity(size_type c) noexcept(is_nothrow_move_constructible<T>::value || is_nothrow_copy_constructible<T>::value)
+    {
+        T *__new_storage = (T *)(new (nothrow) char[c * sizeof(T)]);
+        if (__new_storage == nullptr) return false;
+
+        // To transfer, we prefer move unless it is throwing and copy exists
+        try {
+            __bmcxx_vector::__move_helper<T>::move(__storage, __new_storage, __limit);
+        }
+        catch (...) {
+            delete [] (char *)__new_storage;
+            throw;
+        }
+
+        delete[] (char *)__storage;
+        __storage = __new_storage;
+        __capacity = c;
+
+        return true;
+    }
+
+    bool __ensure_capacity(size_type c, bool __exact = false)
+            noexcept(is_nothrow_move_constructible<T>::value || is_nothrow_copy_constructible<T>::value)
+    {
+        if (__capacity >= c) return true;
+
+        if (c > max_size()) return false;
+
+        size_type __new_capacity = c;
+        if (!__exact) {
+            if (max_size() / 2 < __capacity) {
+                if (__capacity == max_size()) {
+                    return false;
+                }
+                __new_capacity = max_size();
+            }
+            else {
+                if (__capacity == 0) {
+                    // 4 elements seems a reasonable minimum capacity to begin with
+                    __new_capacity = min(size_type(4), max_size());
+                }
+                else {
+                    __new_capacity = __capacity * 2;
+                }
+            }
+        }
+
+        return __enlarge_capacity(__new_capacity);
+    }
+
+public:
+    constexpr vector() noexcept {}
+
+    constexpr vector(const vector &other) {
+        __ensure_capacity(other.__limit, true);
+        for (const T &elem : other) {
+            push_back(elem);
+        }
+    }
+
+    constexpr vector(vector &&other) noexcept {
+        __storage = other.__storage;
+        __limit = other.__limit;
+        __capacity = other.__capacity;
+        other.__storage = nullptr;
+        other.__limit = 0;
+        other.__capacity = 0;
+    }
+
+    ~vector()
+    {
+        for (size_type i = 0; i < __limit; i++) {
+            __storage[i].T::~T();
+        }
+        delete[] (char *)__storage;
+    }
+
+    constexpr size_type max_size() const noexcept
+    {
+        // pick smallest maximum
+        auto __max_l = numeric_limits<size_type>::max() < numeric_limits<difference_type>::max()
+            ? numeric_limits<size_type>::max() : numeric_limits<difference_type>::max();
+        return __max_l / sizeof(T);
+    }
+
+    template <typename U = T, typename = enable_if_t<is_copy_constructible<U>::value>>
+    constexpr void push_back(const T &__val)
+    {
+        if (!__ensure_capacity(__limit + 1)) {
+            throw std::bad_alloc();
+        }
+
+        new (&__storage[__limit]) T(__val);
+        __limit++;
+    }
+
+    template <typename U = T, typename = enable_if_t<is_move_constructible<U>::value>>
+    void push_back(T &&__val) {
+        if (!__ensure_capacity(__limit + 1)) {
+            throw std::bad_alloc();
+        }
+
+        new (&__storage[__limit]) T(std::move(__val));
+        __limit++;
+    }
+
+    template <typename ... Args>
+    constexpr reference emplace_back(Args &&...arg)
+    {
+        if (!__ensure_capacity(__limit + 1)) {
+            throw std::bad_alloc();
+        }
+
+        new (&__storage[__limit]) T(forward<Args>(arg)...);
+        __limit++;
+        return __storage[__limit - 1];
+    }
+
+    T &operator[](size_type i) noexcept
+    {
+        return __storage[i];
+    }
+
+    const T &operator[](size_type i) const noexcept
+    {
+        return __storage[i];
+    }
+
+    constexpr T *data() noexcept { return __storage; }
+    constexpr const T *data() const noexcept { return __storage; }
+    constexpr size_type size() const noexcept { return __limit; }
+    constexpr size_type capacity() const noexcept { return __capacity; }
+    constexpr void reserve(size_type new_capacity) { __ensure_capacity(new_capacity, true); }
+
+    constexpr iterator begin() { return __storage; }
+    constexpr iterator end() { return __storage + __limit; }
+    constexpr const_iterator begin() const { return __storage; }
+    constexpr const_iterator end() const { return __storage + __limit; }
+    constexpr const_iterator cbegin() const { return __storage; }
+    constexpr const_iterator cend() const { return __storage + __limit; }
+
+    constexpr void clear() noexcept
+    {
+        for (size_type i = 0; i < __limit; i++) {
+            __storage[i].T::~T();
+        }
+        __limit = 0;
+    }
+
+    constexpr vector &operator=(const vector &other)
+    {
+        clear();
+        reserve(other.__limit);
+        for (size_type i = 0; i < other.__limit; i++) {
+            push_back(other[i]);
+        }
+        return *this;
+    }
+
+    constexpr vector &operator=(vector &&other) noexcept
+    {
+        clear();
+        delete[] (char *)__storage;
+        __storage = other.__storage;
+        __limit = other.__limit;
+        __capacity = other.__capacity;
+        other.__storage = nullptr;
+        other.__limit = 0;
+        other.__capacity = 0;
+        return *this;
+    }
+};
+
+} // namespace std
+
+#endif

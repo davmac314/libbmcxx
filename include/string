@@ -1,6 +1,9 @@
 #ifndef LIBBMCXX_STRING_INCLUDED
 #define LIBBMCXX_STRING_INCLUDED 1
 
+#include <vector>
+#include <algorithm>
+
 #include "string.h"
 
 namespace std {
@@ -46,7 +49,7 @@ struct __bmcxx_char_traits_ops
 };
 
 template <class CharT>
-class char_traits;
+class char_traits : public __bmcxx_char_traits_ops<CharT> { };
 
 template <>
 class char_traits<char> : public __bmcxx_char_traits_ops<char>
@@ -59,6 +62,61 @@ public:
     static constexpr bool lt(char_type a, char_type b) noexcept { return (unsigned char)a < (unsigned char)b; }
 };
 
-}
+template <class CharT, class Traits = char_traits<CharT>>
+class basic_string
+{
+    vector<CharT> __backing;
+
+    // used for c_str()/data() when no allocation made:
+    // TODO for standard character types, at least, we should be able to keep this in a global instead
+    const CharT __empty = CharT();
+
+public:
+    using value_type = CharT;
+    using traits_type = Traits;
+    using size_type = decltype(sizeof(0));
+    using reference = value_type &;
+    using const_reference = const value_type &;
+    using pointer = value_type *;
+    using const_pointer = const value_type *;
+    using iterator = typename vector<value_type>::iterator;
+    using const_iterator = typename vector<value_type>::const_iterator;
+
+    basic_string() noexcept {}
+    basic_string(const_pointer v)
+    {
+        size_type len = traits_type::length(v);
+        __backing.reserve(len + 1);
+        for (size_type i = 0; i < len; i++) {
+            __backing.push_back(v[i]);
+        }
+        __backing.push_back(value_type());
+    }
+    basic_string(const basic_string &other) = default;
+    basic_string(basic_string &&other) = default;
+
+    constexpr const_pointer c_str() const
+    {
+        if (__backing.capacity() == 0) return &__empty;
+        return __backing.data();
+    }
+    constexpr const_pointer data() const { return c_str(); }
+
+    constexpr size_type length() const { return max(size_type(1), __backing.size()) - 1; };
+
+    constexpr iterator begin() { return c_str(); }
+    constexpr iterator end() { return c_str() + length(); }
+    constexpr const_iterator begin() const { return c_str();; }
+    constexpr const_iterator end() const { return c_str() + length(); }
+    constexpr const_iterator cbegin() const { return c_str(); }
+    constexpr const_iterator cend() const { return c_str() + length(); }
+};
+
+using string = basic_string<char>;
+using wstring = basic_string<wchar_t>;
+using u16string = basic_string<char16_t>;
+using u32string = basic_string<char32_t>;
+
+} // namespace std
 
 #endif
