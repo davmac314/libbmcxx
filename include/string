@@ -3,64 +3,9 @@
 
 #include <vector>
 #include <algorithm>
-
-#include "string.h"
+#include <string_view>
 
 namespace std {
-
-using size_t = decltype(sizeof(0));
-
-template <class CharT>
-struct __bmcxx_char_traits_ops
-{
-    using char_type = CharT;
-
-    static constexpr void assign(char_type &r, const char_type &a) noexcept { r = a; }
-    static constexpr void assign(char_type *p, size_t count, const char_type &a) noexcept
-    {
-        for (size_t i = 0; i < count; i++) {
-            p[i] = a;
-        }
-    }
-
-    static constexpr bool eq(char_type a, char_type b) noexcept { return a == b; }
-    static constexpr bool lt(char_type a, char_type b) noexcept { return a < b; }
-
-    static char_type *copy(char_type *dest, const char_type *src, size_t count) noexcept
-    {
-        memcpy(dest, src, count * sizeof(char_type));
-    }
-
-    static constexpr size_t length(const char_type *s)
-    {
-        size_t i = 0;
-        for ( ; s[i] != 0; i++) ;
-        return i;
-    }
-
-    static constexpr int compare(const char_type *s1, const char_type *s2, size_t count)
-    {
-        for (size_t i = 0; i < count; i++) {
-            if (lt(s1[i], s2[i])) return -1;
-            if (lt(s2[i], s1[i])) return 1;
-        }
-        return 0;
-    }
-};
-
-template <class CharT>
-class char_traits : public __bmcxx_char_traits_ops<CharT> { };
-
-template <>
-class char_traits<char> : public __bmcxx_char_traits_ops<char>
-{
-public:
-    using int_type = int;
-    using pos_type = size_t;
-
-    static constexpr bool eq(char_type a, char_type b) noexcept { return (unsigned char)a == (unsigned char)b; }
-    static constexpr bool lt(char_type a, char_type b) noexcept { return (unsigned char)a < (unsigned char)b; }
-};
 
 template <class CharT, class Traits = char_traits<CharT>>
 class basic_string
@@ -83,15 +28,15 @@ public:
     using const_iterator = typename vector<value_type>::const_iterator;
 
     basic_string() noexcept {}
-    basic_string(const_pointer v)
+    basic_string(const_pointer v, size_type len)
     {
-        size_type len = traits_type::length(v);
         __backing.reserve(len + 1);
         for (size_type i = 0; i < len; i++) {
             __backing.push_back(v[i]);
         }
         __backing.push_back(value_type());
     }
+    basic_string(const_pointer v) : basic_string(v, traits_type::length(v)) { }
     basic_string(const basic_string &other) = default;
     basic_string(basic_string &&other) = default;
 
@@ -110,12 +55,120 @@ public:
     constexpr const_iterator end() const { return c_str() + length(); }
     constexpr const_iterator cbegin() const { return c_str(); }
     constexpr const_iterator cend() const { return c_str() + length(); }
+
+    constexpr basic_string &operator=(const basic_string &other) = default;
+    constexpr basic_string &operator=(basic_string &&other)
+    {
+        __backing = std::move(other.__backing);
+        return *this;
+    }
+    constexpr basic_string &operator+=(value_type ch)
+    {
+        if (__backing.size() == 0) __backing.emplace_back();
+        size_type len = length();
+        __backing.emplace_back(); // append nul terminator
+        __backing[len] = ch;
+        return *this;
+    }
+
+    constexpr int compare(const basic_string &str) const noexcept
+    {
+        size_type rlen = min(length(), str.length());
+        int r = traits_type::compare(c_str(), str.c_str(), rlen);
+        if (r == 0) {
+            if (length() < str.length()) return -1;
+            if (length() > str.length()) return 1;
+        }
+        return r;
+    }
+
+    constexpr int compare(const value_type *p) const noexcept
+    {
+        size_type i = 0;
+        while (p[i] != value_type()) {
+            if (i > length()) {
+                return -1;
+            }
+            const value_type &c = c_str()[i];
+            if (c < p[i]) return -1;
+            if (c > p[i]) return 1;
+            i++;
+        }
+        if (i == length()) return 0;
+        return 1;
+    }
+
+    template <typename T>
+    constexpr enable_if_t<is_convertible<const T&, basic_string_view<CharT,Traits>>::value, int>
+    compare(const T &other) const
+    {
+        basic_string_view<value_type, traits_type> sv = other;
+        basic_string_view<value_type, traits_type> tv { c_str(), length() };
+        return tv.compare(sv);
+    }
 };
 
 using string = basic_string<char>;
 using wstring = basic_string<wchar_t>;
 using u16string = basic_string<char16_t>;
 using u32string = basic_string<char32_t>;
+
+template <class CharT, class Traits>
+constexpr bool operator==(const basic_string<CharT,Traits> &a, const basic_string<CharT,Traits> &b) noexcept
+{ return a.compare(b) == 0; }
+template <class CharT, class Traits>
+constexpr bool operator!=(const basic_string<CharT,Traits> &a, const basic_string<CharT,Traits> &b) noexcept
+{ return a.compare(b) != 0; }
+template <class CharT, class Traits>
+constexpr bool operator<(const basic_string<CharT,Traits> &a, const basic_string<CharT,Traits> &b) noexcept
+{ return a.compare(b) < 0; }
+template <class CharT, class Traits>
+constexpr bool operator<=(const basic_string<CharT,Traits> &a, const basic_string<CharT,Traits> &b) noexcept
+{ return a.compare(b) <= 0; }
+template <class CharT, class Traits>
+constexpr bool operator>(const basic_string<CharT,Traits> &a, const basic_string<CharT,Traits> &b) noexcept
+{ return a.compare(b) > 0; }
+template <class CharT, class Traits>
+constexpr bool operator>=(const basic_string<CharT,Traits> &a, const basic_string<CharT,Traits> &b) noexcept
+{ return a.compare(b) >= 0; }
+
+template <class CharT, class Traits>
+constexpr bool operator==(const basic_string<CharT,Traits> &a, const CharT *b) noexcept
+{ return a.compare(b) == 0; }
+template <class CharT, class Traits>
+constexpr bool operator!=(const basic_string<CharT,Traits> &a, const CharT *b) noexcept
+{ return a.compare(b) != 0; }
+template <class CharT, class Traits>
+constexpr bool operator<(const basic_string<CharT,Traits> &a, const CharT *b) noexcept
+{ return a.compare(b) < 0; }
+template <class CharT, class Traits>
+constexpr bool operator<=(const basic_string<CharT,Traits> &a, const CharT *b) noexcept
+{ return a.compare(b) <= 0; }
+template <class CharT, class Traits>
+constexpr bool operator>(const basic_string<CharT,Traits> &a, const CharT *b) noexcept
+{ return a.compare(b) > 0; }
+template <class CharT, class Traits>
+constexpr bool operator>=(const basic_string<CharT,Traits> &a, const CharT *b) noexcept
+{ return a.compare(b) >= 0; }
+
+template <class CharT, class Traits>
+constexpr bool operator==(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
+{ return b.compare(a) == 0; }
+template <class CharT, class Traits>
+constexpr bool operator!=(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
+{ return b.compare(a) != 0; }
+template <class CharT, class Traits>
+constexpr bool operator<(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
+{ return b.compare(a) > 0; }
+template <class CharT, class Traits>
+constexpr bool operator<=(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
+{ return b.compare(a) >= 0; }
+template <class CharT, class Traits>
+constexpr bool operator>(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
+{ return b.compare(a) < 0; }
+template <class CharT, class Traits>
+constexpr bool operator>=(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
+{ return b.compare(a) <= 0; }
 
 } // namespace std
 

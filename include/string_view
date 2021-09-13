@@ -1,9 +1,10 @@
 #ifndef LIBBMCXX_STRING_VIEW_INCLUDED
 #define LIBBMCXX_STRING_VIEW_INCLUDED 1
 
-#include <string>
 #include <utility>
 #include <stdexcept>
+
+#include "bmcxx_char_traits.h"
 
 namespace std {
 
@@ -95,12 +96,12 @@ public:
         return -1; // this is shorter
     }
 
-    constexpr bool operator==(basic_string_view &other) const noexcept { return compare(other) == 0; }
-    constexpr bool operator!=(basic_string_view &other) const noexcept { return compare(other) != 0; }
-    constexpr bool operator<(basic_string_view &other) const noexcept { return compare(other) < 0; }
-    constexpr bool operator<=(basic_string_view &other) const noexcept { return compare(other) <= 0; }
-    constexpr bool operator>(basic_string_view &other) const noexcept { return compare(other) > 0; }
-    constexpr bool operator>=(basic_string_view &other) const noexcept { return compare(other) >= 0; }
+    constexpr bool operator==(const basic_string_view &other) const noexcept { return compare(other) == 0; }
+    constexpr bool operator!=(const basic_string_view &other) const noexcept { return compare(other) != 0; }
+    constexpr bool operator<(const basic_string_view &other) const noexcept { return compare(other) < 0; }
+    constexpr bool operator<=(const basic_string_view &other) const noexcept { return compare(other) <= 0; }
+    constexpr bool operator>(const basic_string_view &other) const noexcept { return compare(other) > 0; }
+    constexpr bool operator>=(const basic_string_view &other) const noexcept { return compare(other) >= 0; }
 
     constexpr bool starts_with(const value_type *s) const noexcept
     {
