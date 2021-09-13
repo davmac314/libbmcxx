@@ -125,6 +125,14 @@ public:
         if (__old_ptr) __deleter(__old_ptr);
     }
 
+    unique_ptr &operator=(unique_ptr &&other) noexcept
+    {
+        reset();
+        __underlying_ptr = other.release();
+        __deleter = forward<Deleter>(other.__deleter);
+        return *this;
+    }
+
     pointer get() noexcept
     {
         return __underlying_ptr;
