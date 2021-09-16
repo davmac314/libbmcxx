@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <stdexcept>
+#include <algorithm>
 
 #include "bmcxx_char_traits.h"
 
@@ -27,6 +28,8 @@ public:
 
     using size_type = size_t;
     using difference_type = ptrdiff_t;
+
+    static constexpr size_type npos = size_type(-1);
 
 private:
     const_pointer __start;
@@ -62,11 +65,11 @@ public:
         __end = __newend;
     }
 
-    constexpr basic_string_view substring(size_type pos, size_type n)
+    constexpr basic_string_view substring(size_type pos = 0, size_type n = npos)
     {
         if  (__start + pos > __end) throw out_of_range {"string_view substring out-of-range"};
 
-        size_type substrlen = size() - pos;
+        size_type substrlen = min(size() - pos, n);
         return basic_string_view(__start + pos, substrlen);
     }
 
@@ -102,6 +105,16 @@ public:
     constexpr bool operator<=(const basic_string_view &other) const noexcept { return compare(other) <= 0; }
     constexpr bool operator>(const basic_string_view &other) const noexcept { return compare(other) > 0; }
     constexpr bool operator>=(const basic_string_view &other) const noexcept { return compare(other) >= 0; }
+
+    constexpr size_type find(value_type ch, size_type pos = 0) const noexcept
+    {
+        auto len = length();
+        while (pos < len) {
+            if (__start[pos] == ch) return pos;
+            pos++;
+        }
+        return npos;
+    }
 
     constexpr bool starts_with(const value_type *s) const noexcept
     {
