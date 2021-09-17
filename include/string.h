@@ -43,6 +43,23 @@ inline void *memcpy(void * __restrict dest, const void * __restrict src, size_t 
 
 #undef __BMCXX_MEMCPY_USED
 
+#ifndef __BMCXX_MEMMOVE_USED
+#define __BMCXX_MEMMOVE_USED
+#endif
+
+__BMCXX_MEMOP_ATTRIBUTE __BMCXX_MEMMOVE_USED __BMCXX_NOTHROW_ATTR
+inline void *memmove(void * __restrict dest, const void * __restrict src, size_t size) __BMCXX_NOEXCEPT
+{
+    char *destc = (char *)dest;
+    char *srcc = (char *)src;
+    for(size_t i = 0; i < size; i++) {
+        destc[i] = srcc[i];
+    }
+    return dest;
+}
+
+#undef __BMCXX_MEMMOVE_USED
+
 #ifndef __BMCXX_MEMSET_USED
 #define __BMCXX_MEMSET_USED
 #endif

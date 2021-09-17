@@ -14,8 +14,8 @@ options for excluding exception-throwing code etc.
 You may use and redistribute this code, in any form, without restriction.
 
 Currently provides (at least partial implementations of):
-- C "string" functions: `memcpy`, `memset`
-- various C++ header wrappers (`cstddef`, `cstdint`, etc)
+- C "string" functions: `memcpy`, `memset`, `memmove`
+- various C++ wrapper headers (`cstddef`, `cstdint`, etc)
 - `string_view` and variants, `string` and variants (rudimentary)
 - `vector` (rudimentary)
 - `unique_ptr` and `shared_ptr`
