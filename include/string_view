@@ -99,8 +99,11 @@ public:
         return -1; // this is shorter
     }
 
-    constexpr bool operator==(const basic_string_view &other) const noexcept { return compare(other) == 0; }
-    constexpr bool operator!=(const basic_string_view &other) const noexcept { return compare(other) != 0; }
+    constexpr bool operator==(const basic_string_view &other) const noexcept
+    {
+        return length() == other.length() && compare(other) == 0;
+    }
+    constexpr bool operator!=(const basic_string_view &other) const noexcept { return !(*this == other); }
     constexpr bool operator<(const basic_string_view &other) const noexcept { return compare(other) < 0; }
     constexpr bool operator<=(const basic_string_view &other) const noexcept { return compare(other) <= 0; }
     constexpr bool operator>(const basic_string_view &other) const noexcept { return compare(other) > 0; }
