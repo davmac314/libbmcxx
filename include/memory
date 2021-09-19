@@ -61,7 +61,7 @@ public:
     using deleter_type = Deleter;
 
 private:
-    pointer __underlying_ptr = nullptr;
+    pointer __underlying_ptr = pointer();
     deleter_type __deleter;
 
 public:
@@ -106,7 +106,7 @@ public:
 
     bool operator==(decltype(nullptr)) noexcept { return __underlying_ptr == nullptr; }
 
-    T &operator*() noexcept { return *__underlying_ptr; }
+    add_lvalue_reference_t<T> operator*() noexcept { return *__underlying_ptr; }
     T *operator->() noexcept { return __underlying_ptr; }
 
     operator bool() noexcept { return __underlying_ptr != nullptr; }
@@ -114,7 +114,7 @@ public:
     pointer release() noexcept
     {
         auto r = __underlying_ptr;
-        __underlying_ptr = nullptr;
+        __underlying_ptr = pointer();
         return r;
     }
 
@@ -137,6 +137,9 @@ public:
     {
         return __underlying_ptr;
     }
+
+    deleter_type &get_deleter() noexcept { return __deleter; }
+    const deleter_type &get_deleter() const noexcept { return __deleter; }
 
     ~unique_ptr()
     {
