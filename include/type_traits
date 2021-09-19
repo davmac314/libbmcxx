@@ -184,6 +184,35 @@ struct remove_reference<T &&>
     using type = T;
 };
 
+// add_lvalue_reference
+
+namespace libstdbmcxx_type_traits {
+
+template <typename T, typename enabler = void>
+struct add_lvalue_ref
+{
+    using type = T; // default case; we can't add lvalue ref, return type unchanged
+};
+
+template <typename T> using map_to_void = void;
+
+template <typename T>
+struct add_lvalue_ref<T, map_to_void<T&>>
+{
+    using type = T&;
+};
+
+}
+
+template <typename T>
+struct add_lvalue_reference
+{
+    using type = typename libstdbmcxx_type_traits::add_lvalue_ref<T>::type;
+};
+
+template <typename T>
+using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
+
 // enable_if
 
 template <bool B, class T = void>
