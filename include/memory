@@ -94,8 +94,14 @@ public:
             typename = enable_if_t<is_reference<D>::value>>
     unique_ptr(pointer p, typename remove_reference<D>::type &&d) = delete;
 
+    template <typename D = Deleter,
+            typename = enable_if_t<is_move_constructible<D>::value>>
     unique_ptr(unique_ptr &&other) noexcept
-        : __underlying_ptr(other.release()), __deleter(other.__deleter) {}
+        : __underlying_ptr(other.release()), __deleter(std::move(other.__deleter))
+    {
+        static_assert(is_reference<D>::value || is_nothrow_move_constructible<D>::value,
+                "deleter must be reference or nothrow-move-constructible");
+    }
 
     unique_ptr &operator=(decltype(nullptr)) noexcept
     {
@@ -109,7 +115,7 @@ public:
     add_lvalue_reference_t<T> operator*() noexcept { return *__underlying_ptr; }
     T *operator->() noexcept { return __underlying_ptr; }
 
-    operator bool() noexcept { return __underlying_ptr != nullptr; }
+    operator bool() noexcept { return __underlying_ptr != pointer(); }
 
     pointer release() noexcept
     {
