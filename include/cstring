@@ -3,4 +3,12 @@
 
 #include <string.h>
 
+namespace std {
+
+using ::memcpy;
+using ::memmove;
+using ::memset;
+
+}
+
 #endif
