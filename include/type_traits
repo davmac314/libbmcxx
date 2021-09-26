@@ -285,6 +285,20 @@ template <class To, class From>
 struct is_nothrow_assignable<To, From, integral_constant<bool,
         noexcept(libstdbmcxx_type_traits::declval<To>() = libstdbmcxx_type_traits::declval<From>())>> : true_type { };
 
+template <class T>
+struct is_copy_assignable : std::is_assignable<typename add_lvalue_reference<T>::type, typename add_lvalue_reference<const T>::type>
+{ };
+
+template <class T>
+struct is_trivially_copy_assignable : std::is_trivially_assignable<typename add_lvalue_reference<T>::type,
+        typename add_lvalue_reference<const T>::type>
+{ };
+
+template <class T>
+struct is_nothrow_copy_assignable : std::is_nothrow_assignable<typename add_lvalue_reference<T>::type,
+        typename add_lvalue_reference<const T>::type>
+{ };
+
 } // namespace std
 
 #endif
