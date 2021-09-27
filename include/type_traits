@@ -11,6 +11,28 @@ T&& declval() noexcept;
 
 }
 
+// type_identity (C++20)
+// (Can be used to prevent type deduction by providing a non-deduced context)
+
+template <typename T>
+struct type_identity {
+    using type = T;
+};
+
+template <typename T>
+using type_identity_t = typename type_identity<T>::type;
+
+// conditional
+
+template <bool B, class T, class F>
+struct conditional { using type = T; };
+
+template <class T, class F>
+struct conditional<false, T, F> { using type = F; };
+
+template <bool B, class T, class F>
+using conditional_t = typename conditional<B,T,F>::type;
+
 // integral_constant
 
 template <typename T, T val>
@@ -44,6 +66,17 @@ struct is_reference<T &> : true_type {};
 
 template <typename T>
 struct is_reference<T &&> : true_type {};
+
+// is_const
+
+template <typename T> struct is_const : false_type {};
+template <typename T> struct is_const<const T> : true_type {};
+
+// is_function
+
+template <typename T>
+struct is_function : integral_constant<bool,
+        !is_const<const T>::value && !is_reference<T>::value> { };
 
 // is_array
 
@@ -184,6 +217,9 @@ struct remove_reference<T &&>
     using type = T;
 };
 
+template <typename T>
+using remove_reference_t = typename remove_reference<T>::type;
+
 // add_lvalue_reference
 
 namespace libstdbmcxx_type_traits {
@@ -213,6 +249,50 @@ struct add_lvalue_reference
 template <typename T>
 using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
 
+// add_pointer
+
+namespace libstdbmcxx_type_traits {
+
+template <typename T, typename = void>
+struct add_pointer
+{
+    using type = T;
+};
+
+template <typename T>
+struct add_pointer<T, typename conditional<true, void, remove_reference_t<T> *>::type>
+{
+    using type = remove_reference_t<T> *;
+};
+
+} // namespace libstdbmcxx_type_traits
+
+template <typename T>
+struct add_pointer
+{
+    using type = typename libstdbmcxx_type_traits::add_pointer<T>::type;
+};
+
+template <typename T>
+using add_pointer_t = typename add_pointer<T>::type;
+
+// remove const/volatile
+
+template <typename T> struct remove_cv { using type = T; };
+template <typename T> struct remove_cv<const T> { using type = T; };
+template <typename T> struct remove_cv<volatile T> { using type = T; };
+template <typename T> struct remove_cv<const volatile T> { using type = T; };
+
+template <typename T> struct remove_const { using type = T; };
+template <typename T> struct remove_const<const T> { using type = T; };
+
+template <typename T> struct remove_volatile { using type = T; };
+template <typename T> struct remove_volatile<volatile T> { using type = T; };
+
+template <typename T> using remove_cv_t = typename remove_cv<T>::type;
+template <typename T> using remove_const_t = typename remove_const<T>::type;
+template <typename T> using remove_volatile_t = typename remove_volatile<T>::type;
+
 // enable_if
 
 template <bool B, class T = void>
@@ -226,6 +306,25 @@ struct enable_if<true, T>
 
 template <bool B, class T = void>
 using enable_if_t = typename enable_if<B,T>::type;
+
+// decay
+
+template <typename T> struct decay {
+private:
+    static const bool is_func = is_function<T>::value || is_function<remove_reference_t<T>>::value;
+public:
+    using type = typename conditional<is_func,
+            add_pointer_t<remove_reference_t<T>>,
+            T>::type;
+};
+
+template <typename T> struct decay<T[]> { using type = T *; };
+template <typename T, decltype(sizeof(0)) I> struct decay<T[I]> { using type = T *; };
+template <typename T> struct decay<T(&)[]> { using type = T *; };
+template <typename T, decltype(sizeof(0)) I> struct decay<T(&)[I]> { using type = T *; };
+
+template <typename T>
+using decay_t = typename decay<T>::type;
 
 // is_convertible
 
