@@ -105,8 +105,7 @@ public:
 
     unique_ptr &operator=(decltype(nullptr)) noexcept
     {
-        if (__underlying_ptr) __deleter(__underlying_ptr);
-        __underlying_ptr = nullptr;
+        reset();
         return *this;
     }
 
@@ -128,7 +127,7 @@ public:
     {
         auto __old_ptr = __underlying_ptr;
         __underlying_ptr = ptr;
-        if (__old_ptr) __deleter(__old_ptr);
+        if (__old_ptr != pointer()) __deleter(__old_ptr);
     }
 
     unique_ptr &operator=(unique_ptr &&other) noexcept
@@ -139,7 +138,7 @@ public:
         return *this;
     }
 
-    pointer get() noexcept
+    pointer get() const noexcept
     {
         return __underlying_ptr;
     }
@@ -149,7 +148,7 @@ public:
 
     ~unique_ptr()
     {
-        if (__underlying_ptr) __deleter(__underlying_ptr);
+        if (__underlying_ptr != pointer()) __deleter(__underlying_ptr);
     }
 };
 
@@ -202,8 +201,7 @@ public:
 
     unique_ptr &operator=(decltype(nullptr)) noexcept
     {
-        if (__underlying_ptr) __deleter(__underlying_ptr);
-        __underlying_ptr = nullptr;
+        reset();
         return *this;
     }
 
@@ -223,14 +221,14 @@ public:
         if (__old_ptr) __deleter(__old_ptr);
     }
 
-    pointer get() noexcept
+    pointer get() const noexcept
     {
         return __underlying_ptr;
     }
 
     ~unique_ptr()
     {
-        if (__underlying_ptr) __deleter(__underlying_ptr);
+        if (__underlying_ptr != pointer()) __deleter(__underlying_ptr);
     }
 };
 
