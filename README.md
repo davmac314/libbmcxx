@@ -19,6 +19,7 @@ Currently provides (at least partial implementations of):
 - `string_view` and variants, `string` and variants (rudimentary)
 - `vector` (rudimentary)
 - `unique_ptr` and `shared_ptr`
+- `pair` (but not yet `tuple`)
 - `terminate()` (calls `abort`)
 - various standard new/delete overloads (which ultimately call `malloc`/`free`)
 - some of `type_traits`, `limits`

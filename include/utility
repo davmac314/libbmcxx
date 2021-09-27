@@ -29,6 +29,197 @@ constexpr T&& forward(std::remove_reference_t<T>&& t) noexcept
     return static_cast<T&&>(t);
 }
 
+// pair
+
+namespace libstdbmcxx_utility {
+
+template <typename T, typename = void>
+struct is_implicitly_default_cons : false_type { };
+
+template <typename T>
+struct is_implicitly_default_cons<T, enable_if_t<!is_void<decltype(declval<T&>() = {})>::value>> : true_type { };
+
+template <typename T>
+struct is_explicit_default_cons : integral_constant<bool,
+        is_default_constructible<T>::value && !is_implicitly_default_cons<T>::value>
+{ };
+
+} // namespace libstdbmcxx_utility
+
+template <class T1, class T2>
+struct pair
+{
+    using first_type = T1;
+    using second_type = T2;
+
+    first_type first;
+    second_type second;
+
+    // Implicit default constructor, enabled if T1 & T2 can both be implicitly default constructed
+    template <typename U1 = T1, typename U2 = T2,
+            enable_if_t<libstdbmcxx_utility::is_implicitly_default_cons<T1>::value
+            && libstdbmcxx_utility::is_implicitly_default_cons<T2>::value, bool> = true>
+    constexpr pair() noexcept(noexcept(T1()) && noexcept(T2())) : first(), second() { }
+
+    // Explicit default constructor, enabled if T1 & T2 can both be default constructed but either one has
+    // an explicit default constructor
+    template <typename U1 = T1, typename U2 = T2,
+            enable_if_t<
+                (libstdbmcxx_utility::is_explicit_default_cons<U1>::value && is_default_constructible<U2>::value)
+            ||  (libstdbmcxx_utility::is_explicit_default_cons<U2>::value && is_default_constructible<U1>::value), bool> = true>
+    constexpr explicit pair() noexcept(noexcept(T1()) && noexcept(T2())) : first(), second() { }
+
+    // Constructor from two values (non-explicit version)
+    template <typename U1 = T1, typename U2 = T2, enable_if_t<is_copy_constructible<U1>::value && is_copy_constructible<U2>::value
+            && is_convertible<const U1 &, U1>::value && is_convertible<const U2 &, U2>::value, bool> = true>
+    constexpr pair(const T1 &f, const T2 &s) : first(f), second(s) { }
+
+    // Constructor from two values (explicit version)
+    template <typename U1 = T1, typename U2 = T2, enable_if_t<is_copy_constructible<U1>::value && is_copy_constructible<U2>::value
+            && (!is_convertible<const U1 &, U1>::value || !is_convertible<const U2 &, U2>::value), bool> = true>
+    constexpr explicit pair(const T1 &f, const T2 &s) : first(f), second(s) { }
+
+    // Move from two values (non-explicit)
+    template <typename U1, typename U2, enable_if_t<is_constructible<T1,U1&&>::value && is_constructible<T2,U2&&>::value
+            && is_convertible<const T1&, T1>::value && is_convertible<const T2&, T2>::value, bool> = true>
+    constexpr pair(U1 &&f, U2 &&s) : first(forward<U1>(f)), second(forward<U2>(s)) { }
+
+    // Move from two values (explicit)
+    template <typename U1, typename U2, enable_if_t<is_constructible<T1,U1&&>::value && is_constructible<T2,U2&&>::value
+            && (!is_convertible<const T1&, T1>::value || !is_convertible<const T2&, T2>::value), bool> = true>
+    constexpr explicit pair(U1 &&f, U2 &&s) : first(forward<U1>(f)), second(forward<U2>(s)) { }
+
+    // Copy from other pair (non-explicit)
+    template <typename U1, typename U2, enable_if_t<is_constructible<T1,const U1&>::value && is_constructible<T2,const U2&>::value
+            && is_convertible<const U1&, T1>::value && is_convertible<const U2&, T2>::value, bool> = true>
+    pair(const pair<U1,U2> &other) : first(other.first), second(other.second) { }
+
+    // Copy from other pair (explicit)
+    template <typename U1, typename U2, enable_if_t<is_constructible<T1,const U1&>::value && is_constructible<T2,const U2&>::value
+            && (!is_convertible<const U1&, T1>::value || !is_convertible<const U2&, T2>::value), bool> = true>
+    explicit pair(const pair<U1,U2> &other) : first(other.first), second(other.second) { }
+
+    // Move from other pair (non-explicit)
+    template <typename U1, typename U2, enable_if_t<is_constructible<T1,const U1&&>::value && is_constructible<T2,const U2&&>::value
+            && is_convertible<const U1&&, T1>::value && is_convertible<const U2&&, T2>::value, bool> = true>
+    pair(const pair<U1,U2> &&other) : first(move(other.first)), second(move(other.second)) { }
+
+    // Move from other pair (explicit)
+    template <typename U1, typename U2, enable_if_t<is_constructible<T1,const U1&&>::value && is_constructible<T2,const U2&&>::value
+            && (!is_convertible<const U1&&, T1>::value || !is_convertible<const U2&&, T2>::value), bool> = true>
+    explicit pair(const pair<U1,U2> &&other) : first(move(other.first)), second(move(other.second)) { }
+
+    constexpr pair(const pair &p) = default;
+    constexpr pair(pair && p) = default;
+
+    // Delete implicit assignment if not possible
+    template <typename U1 = T1, typename U2 = T2,
+            enable_if_t<(!is_copy_assignable<U1>::value) || !is_copy_assignable<U2>::value, bool> = true>
+    pair &operator=(const pair &other) = delete;
+
+    struct __bad {
+        __bad() = delete;
+        __bad(const __bad &) = delete;
+        __bad(__bad &&) = delete;
+        void operator=(const __bad &) = delete;
+    };
+
+    // We have a move constructor, so default copy assignment is implicitly deleted; a template
+    // won't take its place. We need to have an explicit, non-template copy assignment. But we'll disable
+    // it via parameter types if pertinent.
+    constexpr pair &operator=(conditional_t<is_copy_assignable<T1>::value && is_copy_assignable<T2>::value,
+            const pair &,
+            __bad> other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    template <typename U1, typename U2,
+            enable_if_t<is_assignable<T1&,const U1&>::value && is_assignable<T2&,const U2&>::value, bool> = true>
+    constexpr pair &operator=(const pair<U1,U2> &other)
+            noexcept(noexcept(first = std::move(other.first), second = std::move(other.second)))
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    // move-assign
+    template <typename U1 = T1, typename U2 = T2>
+    constexpr pair &operator=(pair &&other)
+            noexcept(noexcept(first = std::move(declval<U1>()), second = std::move(declval<U2>())))
+    {
+        first = std::move(other.first);
+        second = std::move(other.second);
+        return *this;
+    }
+
+    template <typename U1, typename U2>
+    constexpr pair &operator=(pair<U1,U2> &&other)
+    {
+        first = std::move(other.first);
+        second = std::move(other.second);
+        return *this;
+    }
+};
+
+template <typename T> class reference_wrapper;
+
+namespace libstdbmcxx_utility {
+
+template <typename T>
+struct decay_refwrap { using type = T; };
+
+template <typename T>
+struct decay_refwrap<reference_wrapper<T>> { using type = T&; };
+
+} // namespace libstdbmcxx_utility
+
+template <typename T1, typename T2>
+pair<decay_t<T1>, decay_t<T2>> make_pair(T1 &&t1, T2 &&t2)
+{
+    return { std::forward<T1>(t1), std::forward<T2>(t2) };
+}
+
+template <typename T1, typename T2>
+bool operator==(const pair<T1,T2> &p1, const pair<T1,T2> &p2)
+{
+    return p1.first == p2.first && p1.second == p2.second;
+}
+
+template <typename T1, typename T2>
+bool operator!=(const pair<T1,T2> &p1, const pair<T1,T2> &p2) { return !(p1 == p2); }
+template <typename T1, typename T2>
+bool operator<(const pair<T1,T2> &p1, const pair<T1,T2> &p2)
+{
+    if (p1.first < p2.first) return true;
+    if (p1.first > p2.first) return false;
+    return p1.second < p2.second;
+}
+template <typename T1, typename T2>
+bool operator<=(const pair<T1,T2> &p1, const pair<T1,T2> &p2)
+{
+    if (p1.first < p2.first) return true;
+    if (p1.first > p2.first) return false;
+    return p1.second <= p2.second;
+}
+template <typename T1, typename T2>
+bool operator>(const pair<T1,T2> &p1, const pair<T1,T2> &p2)
+{
+    if (p1.first > p2.first) return true;
+    if (p1.first < p2.first) return false;
+    return p1.second > p2.second;
+}
+template <typename T1, typename T2>
+bool operator>=(const pair<T1,T2> &p1, const pair<T1,T2> &p2)
+{
+    if (p1.first > p2.first) return true;
+    if (p1.first < p2.first) return false;
+    return p1.second >= p2.second;
+}
+
 } // namespace std
 
 #endif
