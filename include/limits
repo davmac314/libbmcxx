@@ -65,6 +65,33 @@ class numeric_limits<long long int> : public __bmcxx_numeric_limits<long long in
 template <>
 class numeric_limits<unsigned long long> : public __bmcxx_numeric_limits<unsigned long long> {};
 
+#ifdef __GLIBCXX_TYPE_INT_N_0
+template <>
+class numeric_limits<__GLIBCXX_TYPE_INT_N_0> : public __bmcxx_numeric_limits<__GLIBCXX_TYPE_INT_N_0> {};
+#endif
+
+// Undocumented extension (supported by GCC & Clang) to support extended integer types such as int128:
+
+#ifdef __GLIBCXX_TYPE_INT_N_1
+template <>
+class numeric_limits<__GLIBCXX_TYPE_INT_N_1> : public __bmcxx_numeric_limits<__GLIBCXX_TYPE_INT_N_1> {};
+#endif
+
+#ifdef __GLIBCXX_TYPE_INT_N_2
+template <>
+class numeric_limits<__GLIBCXX_TYPE_INT_N_2> : public __bmcxx_numeric_limits<__GLIBCXX_TYPE_INT_N_2> {};
+#endif
+
+#ifdef __GLIBCXX_TYPE_INT_N_3
+template <>
+class numeric_limits<__GLIBCXX_TYPE_INT_N_3> : public __bmcxx_numeric_limits<__GLIBCXX_TYPE_INT_N_3> {};
+#endif
+
+
+#ifdef __GLIBCXX_TYPE_INT_N_4
+#error "Too many extended integer types!"
+#endif
+
 } // namespace std
 
 #endif
