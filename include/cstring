@@ -8,6 +8,7 @@ namespace std {
 using ::memcpy;
 using ::memmove;
 using ::memset;
+using ::memcmp;
 
 }
 

@@ -1,6 +1,11 @@
 #ifndef _BMCXX_STRING_H_INCLUDED
 #define _BMCXX_STRING_H_INCLUDED 1
 
+// This implements various functions as inlines. To also generate non-inline instantiations a
+// trick is used; the relevant source file (see eg memcpy.c) sets a macro for the relevant
+// function (eg __BMCXX_MEMCPY_USED) to an attribute which will force generation
+// ("__attribute__((used))").
+
 // Use undocumented GCC magic for size_t
 #define __need_size_t 1
 #include "stddef.h"
@@ -73,6 +78,26 @@ inline void *memset(void *s, int c, size_t n)
     }
     return s;
 }
+
+#ifndef __BMCXX_MEMCMP_USED
+#define __BMCXX_MEMCMP_USED
+#endif
+
+__BMCXX_MEMOP_ATTRIBUTE __BMCXX_MEMCMP_USED __BMCXX_NOTHROW_ATTR
+inline int memcmp(const void *s1, const void *s2, size_t n)
+{
+    const unsigned char *s1c = (const unsigned char *)s1;
+    const unsigned char *s2c = (const unsigned char *)s2;
+    for (size_t i = 0; i < n; i++) {
+        int diff = s1c[i] - s2c[i];
+        if (diff != 0) {
+            return diff;
+        }
+    }
+    return 0;
+}
+
+#undef __BMCXX_MEMCMP_USED
 
 #ifdef __cplusplus
 } // extern "C"
