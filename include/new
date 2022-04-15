@@ -18,7 +18,7 @@ struct nothrow_t {
 namespace {
 
 // (this is really supposed to be an extern)
-nothrow_t nothrow;
+__attribute__((unused)) nothrow_t nothrow;
 
 } // namepace
 
