@@ -2,16 +2,21 @@
 
 Work-in-progress.
 
+*You may use and redistribute this code, in any form, without restriction.* There is no warranty
+expressed or implied.
+
+*Testing has been minimal. Use at your own risk*.
+
 Provides various C++ (and C) standard library components that are suitable for bare metal
 applications. Requires G++/Clang++ or something very compatible, and uses the C headers provided
-by the compiler (in `-ffreestanding` mode).
+by the compiler (in `-ffreestanding` mode). Aims roughly for C++14 (but with a bit of later
+standards thrown in for good measure too).
 
 Note: no floating-point support or thread support (yet; both may be added as options later).
 
 The intention is to provide a useful subset of the C++ standard library, with various options
-useful for bare metal including exceptionless mode and float-less mode.
+useful for bare metal including exception-less mode and float-less mode.
 
-You may use and redistribute this code, in any form, without restriction.
 
 Currently provides (at least partial implementations of):
 - C "string" functions: `memcpy`, `memset`, `memmove`, `memcmp`
@@ -21,6 +26,7 @@ Currently provides (at least partial implementations of):
 - `unique_ptr` and `shared_ptr`
 - `pair` (but not yet `tuple`)
 - `terminate()` (calls `abort`)
+- a little bit of `atomic`
 - various standard new/delete overloads (which ultimately call `malloc`/`free`)
 - some of `type_traits`, `limits`
 - some standard exception types via `exception`, `stdexcept`

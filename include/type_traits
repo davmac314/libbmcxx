@@ -230,12 +230,24 @@ struct add_lvalue_ref
     using type = T; // default case; we can't add lvalue ref, return type unchanged
 };
 
+template <typename T, typename enabler = void>
+struct add_rvalue_ref
+{
+    using type = T; // default case; we can't add rvalue ref, return type unchanged
+};
+
 template <typename T> using map_to_void = void;
 
 template <typename T>
 struct add_lvalue_ref<T, map_to_void<T&>>
 {
     using type = T&;
+};
+
+template <typename T>
+struct add_rvalue_ref<T, map_to_void<T&&>>
+{
+    using type = T&&;
 };
 
 }
@@ -248,6 +260,15 @@ struct add_lvalue_reference
 
 template <typename T>
 using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
+
+template <typename T>
+struct add_rvalue_reference
+{
+    using type = typename libstdbmcxx_type_traits::add_rvalue_ref<T>::type;
+};
+
+template <typename T>
+using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
 
 // add_pointer
 
@@ -397,6 +418,74 @@ template <class T>
 struct is_nothrow_copy_assignable : std::is_nothrow_assignable<typename add_lvalue_reference<T>::type,
         typename add_lvalue_reference<const T>::type>
 { };
+
+template <class T>
+struct is_trivially_copyable : std::integral_constant<bool, __is_trivially_copyable(T)>
+{ };
+
+template <class T>
+struct is_move_assignable : std::is_assignable<typename add_lvalue_reference<T>::type, typename add_rvalue_reference<const T>::type>
+{ };
+
+// is_integral:
+
+template <class T>
+struct is_integral : false_type { };
+
+template <> struct is_integral<bool> : true_type { };
+
+template <> struct is_integral<char> : true_type { };
+template <> struct is_integral<signed char> : true_type { };
+template <> struct is_integral<unsigned char> : true_type { };
+template <> struct is_integral<char16_t> : true_type { };
+template <> struct is_integral<char32_t> : true_type { };
+template <> struct is_integral<wchar_t> : true_type { };
+
+template <> struct is_integral<short> : true_type { };
+template <> struct is_integral<int> : true_type { };
+template <> struct is_integral<long> : true_type { };
+template <> struct is_integral<long long> : true_type { };
+
+template <> struct is_integral<unsigned short> : true_type { };
+template <> struct is_integral<unsigned int> : true_type { };
+template <> struct is_integral<unsigned long> : true_type { };
+template <> struct is_integral<unsigned long long> : true_type { };
+
+#ifdef __GLIBCXX_TYPE_INT_N_0
+template <> struct is_integral<__GLIBCXX_TYPE_INT_N_0> : true_type { };
+template <> struct is_integral<unsigned __GLIBCXX_TYPE_INT_N_0> : true_type { };
+#endif
+
+#ifdef __GLIBCXX_TYPE_INT_N_1
+template <> struct is_integral<__GLIBCXX_TYPE_INT_N_1> : true_type { };
+template <> struct is_integral<unsigned __GLIBCXX_TYPE_INT_N_1> : true_type { };
+#endif
+
+#ifdef __GLIBCXX_TYPE_INT_N_2
+template <> struct is_integral<__GLIBCXX_TYPE_INT_N_2> : true_type { };
+template <> struct is_integral<unsigned __GLIBCXX_TYPE_INT_N_2> : true_type { };
+#endif
+
+#ifdef __GLIBCXX_TYPE_INT_N_3
+template <> struct is_integral<__GLIBCXX_TYPE_INT_N_3> : true_type { };
+template <> struct is_integral<unsigned __GLIBCXX_TYPE_INT_N_3> : true_type { };
+#endif
+
+#ifdef __GLIBCXX_TYPE_INT_N_4
+#error "Too many extended integer types!"
+#endif
+
+template <class T> struct is_integral<const T> : is_integral<T> { };
+template <class T> struct is_integral<volatile T> : is_integral<T> { };
+template <class T> struct is_integral<const volatile T> : is_integral<T> { };
+
+// is_pointer:
+
+template <class T> struct is_pointer : false_type { };
+template <class T> struct is_pointer<T *> : true_type { };
+template <class T> struct is_pointer<T * const> : true_type { };
+template <class T> struct is_pointer<T * volatile> : true_type { };
+template <class T> struct is_pointer<T * const volatile> : true_type { };
 
 } // namespace std
 

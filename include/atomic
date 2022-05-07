@@ -1,0 +1,198 @@
+#ifndef LIBBMCXX_ATOMIC_INCLUDED
+#define LIBBMCXX_ATOMIC_INCLUDED 1
+
+#include <type_traits>
+
+namespace std {
+
+typedef enum memory_order {
+    memory_order_relaxed,
+    memory_order_consume,
+    memory_order_acquire,
+    memory_order_release,
+    memory_order_acq_rel,
+    memory_order_seq_cst
+} memory_order;
+
+static_assert(memory_order_relaxed == __ATOMIC_RELAXED);
+static_assert(memory_order_consume == __ATOMIC_CONSUME);
+static_assert(memory_order_acquire == __ATOMIC_ACQUIRE);
+static_assert(memory_order_release == __ATOMIC_RELEASE);
+static_assert(memory_order_acq_rel == __ATOMIC_ACQ_REL);
+static_assert(memory_order_seq_cst == __ATOMIC_SEQ_CST);
+
+
+// we will make use of GCC builtins:
+//  __atomic_load / __atomic_load_n
+// etc
+
+namespace libbmcxx_atomic {
+
+template <class T>
+constexpr bool is_primitive() {
+    return is_integral<T>() || is_pointer<T>();
+}
+
+enum class type_classification {
+    primitive,
+    integral,
+    pointer,
+    other
+};
+
+// classify to one of four atomic base types:
+template <class T>
+constexpr type_classification get_classification()
+{
+    // bool is technically integral, but we don't want "fetch and add" etc
+    if (is_same<T, bool>())
+        return type_classification::primitive;
+
+    if (is_pointer<T>())
+        return type_classification::pointer;
+
+    if (is_integral<T>())
+        return type_classification::integral;
+
+    return type_classification::other;
+}
+
+
+template <class T, type_classification c = get_classification<T>()>
+struct atomic_base;
+
+// We have four base classes for atomic<T>, depending on characteristics of T.
+
+// base for non-primitive types:
+template <class T> struct atomic_base<T, type_classification::other>
+{
+    T value;
+
+    constexpr atomic_base() noexcept(std::is_nothrow_default_constructible<T>::value) = default;
+    constexpr atomic_base(T desired) noexcept : value(desired) {}
+    atomic_base(const atomic_base &) = delete;
+
+    void store(T desired, memory_order order = memory_order_seq_cst) noexcept
+    {
+        __atomic_store(&value, &desired, order);
+    }
+
+    void store(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+        __atomic_store(&value, &desired, order);
+    }
+
+    // In the following we may use a single-member union to avoid initialisation
+
+    T load(memory_order order = memory_order_seq_cst) const noexcept
+    {
+        union {
+            T val;
+        } mval;
+        __atomic_load(&value, mval.val, order);
+        return mval.val;
+    }
+
+    T load(memory_order order = memory_order_seq_cst) const volatile noexcept
+    {
+        return const_cast<remove_volatile<decltype(this)>>(this)->load(order);
+    }
+
+    T exchange(T desired, memory_order order = memory_order_seq_cst) noexcept
+    {
+        union {
+            T val;
+        } mval;
+        __atomic_exchange(&value, &desired, &mval.val, order);
+        return mval.val;
+    }
+
+    T exchange(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+        return const_cast<remove_volatile<decltype(this)>>(this)->exchange(desired, order);
+    }
+};
+
+// base for primitive-but-not-integral types:
+template <class T> struct atomic_base<T, type_classification::primitive> {
+    T value;
+
+    constexpr atomic_base() noexcept(std::is_nothrow_default_constructible<T>::value) = default;
+    constexpr atomic_base(T desired) noexcept : value(desired) {}
+    atomic_base(const atomic_base &) = delete;
+
+    void store(T desired, memory_order order = memory_order_seq_cst) noexcept
+    {
+        __atomic_store_n(&value, desired, order);
+    }
+
+    void store(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+        __atomic_store_n(&value, desired, order);
+    }
+
+    T load(memory_order order = memory_order_seq_cst) const noexcept
+    {
+        return __atomic_load_n(&value, order);
+    }
+
+    T load(memory_order order = memory_order_seq_cst) const volatile noexcept
+    {
+        return __atomic_load_n(&value, order);
+    }
+
+    T exchange(T desired, memory_order order = memory_order_seq_cst) noexcept
+    {
+        return __atomic_exchange_n(&value, desired, order);
+    }
+
+    T exchange(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+        return __atomic_exchange_n(&value, desired, order);
+    }
+};
+
+// base for pointer types
+template <class T> struct atomic_base<T, type_classification::pointer> : atomic_base<T, type_classification::primitive> {
+    using atomic_base<T, type_classification::primitive>::atomic_base;
+};
+
+// base for integral types
+template <class T> struct atomic_base<T, type_classification::integral> : atomic_base<T, type_classification::primitive> {
+    using atomic_base<T, type_classification::primitive>::atomic_base;
+
+    T fetch_add(T arg, memory_order order = memory_order_seq_cst) noexcept {
+        return __atomic_fetch_add(&this->value, arg, order);
+    }
+
+    T fetch_add(T arg, memory_order order = memory_order_seq_cst) volatile noexcept {
+        return __atomic_fetch_add(&this->value, arg, order);
+    }
+};
+
+}
+
+template <class T> struct atomic : libbmcxx_atomic::atomic_base<T>
+{
+    static_assert(std::is_trivially_copyable<T>::value);
+    static_assert(std::is_copy_constructible<T>::value);
+    static_assert(std::is_move_constructible<T>::value);
+    static_assert(std::is_copy_assignable<T>::value);
+    static_assert(std::is_move_assignable<T>::value);
+
+    constexpr atomic() noexcept(std::is_nothrow_default_constructible<T>::value) = default;
+    constexpr atomic(T desired) noexcept : libbmcxx_atomic::atomic_base<T>(desired) {}
+    atomic(const atomic &) = delete;
+
+    using libbmcxx_atomic::atomic_base<T>::store;
+    using libbmcxx_atomic::atomic_base<T>::load;
+
+    T operator=(T desired) noexcept { store(desired); return desired; }
+    T operator=(T desired) volatile noexcept { store(desired); return desired; }
+    atomic &operator=(const atomic &) = delete;
+    atomic &operator=(const atomic &) volatile = delete;
+};
+
+} // namespace std
+
+#endif /* LIBBMCXX_ATOMIC_INCLUDED */
