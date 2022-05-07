@@ -2,10 +2,10 @@
 
 Work-in-progress.
 
-*You may use and redistribute this code, in any form, without restriction.* There is no warranty
+**You may use and redistribute this code, in any form, without restriction.** There is no warranty
 expressed or implied.
 
-*Testing has been minimal. Use at your own risk*.
+**Testing has been minimal. Use at your own risk.**
 
 Provides various C++ (and C) standard library components that are suitable for bare metal
 applications. Requires G++/Clang++ or something very compatible, and uses the C headers provided
@@ -60,6 +60,15 @@ are:
    
    This is currently a no-op since at present there are no such functions implemented anyway...
 
+## Limitations / known issues
+
+- No floating point support
+- No thread support
+- Library headers are not "namespace pollution safe". For example, variable names (for local
+  variables in functions defined in a header) do not begin with leading '__' as is done in
+  mainstream implementations. The issue is that a user may define a macro with the same name
+  as the variable before including the header and cause chaos. Probably won't fix; code is
+  easier to read this way, and users just "shouldn't do that".
 
 ## TODO
 
