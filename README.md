@@ -53,7 +53,8 @@ are:
    
    In general, where an exception would have been thrown, `std::terminate()` will be called
    instead. One exception is that calls to `new()` will return `nullptr` on failure (as if
-   `new(nothrow)` had been used) rather than terminating. 
+   `new(nothrow)` had been used) rather than terminating. To enable checking its return value
+   the `-fcheck-new` option should be used when compiling code that does so.
 
  * `BMCXX_DISABLE_FLOAT` - if defined true, floating-point functions (returning floating-point
    values or taking them as arguments) will be unavailable.
