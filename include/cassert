@@ -1,0 +1,6 @@
+#ifndef LIBBMCXX_INCLUDED_CASSERT
+#define LIBBMCXX_INCLUDED_CASSERT 1
+
+#include <assert.h>
+
+#endif

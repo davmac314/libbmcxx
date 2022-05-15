@@ -1,0 +1,6 @@
+#ifndef LIBBMCXX_INCLUDED_CLIMITS
+#define LIBBMCXX_INCLUDED_CLIMITS 1
+
+#include <limits.h>
+
+#endif
