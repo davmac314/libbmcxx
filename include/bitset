@@ -1,0 +1,67 @@
+#ifndef LIBBMCXX_BITSET_INCLUDED
+#define LIBBMCXX_BITSET_INCLUDED 1
+
+// std::bitset - mostly incomplete.
+
+namespace std {
+
+namespace libbmcxx_bitset {
+using size_t = decltype(sizeof(int));
+}
+
+template <libbmcxx_bitset::size_t N>
+class bitset
+{
+    const static int bm_size = (N + sizeof(unsigned) - 1) / sizeof(unsigned);
+    unsigned bitmask[bm_size];
+
+public:
+    constexpr bitset() noexcept
+    {
+        for (int i = 0; i < bm_size; i++) {
+            bitmask[i] = 0;
+        }
+    }
+
+    class reference
+    {
+        friend class bitset;
+
+        unsigned *container;
+        unsigned bitnum;
+
+        reference(unsigned *container, unsigned bitnum) : container(container), bitnum(bitnum) {}
+
+    public:
+        reference &operator=(bool x) noexcept
+        {
+            unsigned mask = (unsigned)(-2) << bitnum;
+            *container &= mask;
+            *container |= (x ? 1u : 0u) << bitnum;
+            return *this;
+        }
+
+        operator bool() const noexcept
+        {
+            return ((*container >> bitnum) & 1) != 0;
+        }
+    };
+
+    constexpr bool operator[](libbmcxx_bitset::size_t pos) const
+    {
+        libbmcxx_bitset::size_t index = pos / sizeof(unsigned);
+        unsigned bitpos = pos % sizeof(unsigned);
+        return (bitmask[index] >> bitpos) != 0;
+    }
+
+    reference operator[](libbmcxx_bitset::size_t pos)
+    {
+        libbmcxx_bitset::size_t index = pos / sizeof(unsigned);
+        unsigned bitpos = pos % sizeof(unsigned);
+        return reference { &bitmask[index], bitpos };
+    }
+};
+
+} // namespace std
+
+#endif // LIBBMCXX_BITSET_INCLUDED
