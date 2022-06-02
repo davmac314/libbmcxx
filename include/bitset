@@ -12,16 +12,11 @@ using size_t = decltype(sizeof(int));
 template <libbmcxx_bitset::size_t N>
 class bitset
 {
-    const static int bm_size = (N + sizeof(unsigned) - 1) / sizeof(unsigned);
-    unsigned bitmask[bm_size];
+    const static int bm_size = (N + sizeof(unsigned) * __CHAR_BIT__ - 1) / (sizeof(unsigned) * __CHAR_BIT__);
+    unsigned bitmask[bm_size] = {};
 
 public:
-    constexpr bitset() noexcept
-    {
-        for (int i = 0; i < bm_size; i++) {
-            bitmask[i] = 0;
-        }
-    }
+    constexpr bitset() noexcept {}
 
     class reference
     {
@@ -49,15 +44,15 @@ public:
 
     constexpr bool operator[](libbmcxx_bitset::size_t pos) const
     {
-        libbmcxx_bitset::size_t index = pos / sizeof(unsigned);
-        unsigned bitpos = pos % sizeof(unsigned);
+        libbmcxx_bitset::size_t index = pos / (sizeof(unsigned) * __CHAR_BIT__);
+        unsigned bitpos = pos % (sizeof(unsigned) * __CHAR_BIT__);
         return (bitmask[index] >> bitpos) != 0;
     }
 
     reference operator[](libbmcxx_bitset::size_t pos)
     {
-        libbmcxx_bitset::size_t index = pos / sizeof(unsigned);
-        unsigned bitpos = pos % sizeof(unsigned);
+        libbmcxx_bitset::size_t index = pos / (sizeof(unsigned) * __CHAR_BIT__);
+        unsigned bitpos = pos % (sizeof(unsigned) * __CHAR_BIT__);
         return reference { &bitmask[index], bitpos };
     }
 };
