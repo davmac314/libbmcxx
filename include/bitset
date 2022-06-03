@@ -16,7 +16,7 @@ class bitset
     unsigned bitmask[bm_size] = {};
 
 public:
-    constexpr bitset() noexcept {}
+    constexpr bitset() noexcept = default;
 
     class reference
     {
