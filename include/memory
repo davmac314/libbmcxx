@@ -268,7 +268,7 @@ struct __control_block
     static __control_block *make_cb(const D &d)
     {
         using size_t = decltype(sizeof(0));
-        size_t ad = alignof(d);
+        size_t ad = alignof(D);
         size_t del_offs = ((sizeof(__control_block) + ad - 1) / ad) * ad;
 
         size_t total_sz = del_offs + sizeof(d);
