@@ -14,7 +14,11 @@ class basic_string
 
     // used for c_str()/data() when no allocation made:
     // TODO for standard character types, at least, we should be able to keep this in a global instead
-    const CharT __empty = CharT();
+    const CharT &__get_empty() const
+    {
+        static CharT __empty = CharT();
+        return __empty;
+    }
 
 public:
     using value_type = CharT;
@@ -42,12 +46,14 @@ public:
 
     constexpr const_pointer c_str() const
     {
-        if (__backing.capacity() == 0) return &__empty;
+        if (__backing.empty()) return &__get_empty();
         return __backing.data();
     }
     constexpr const_pointer data() const { return c_str(); }
 
-    constexpr size_type length() const { return max(size_type(1), __backing.size()) - 1; };
+    constexpr size_type length() const { return max(size_type(1), __backing.size()) - 1; }
+    constexpr size_type size() const { return length(); }
+    constexpr bool empty() const { return length() == 0; }
 
     constexpr iterator begin() { return c_str(); }
     constexpr iterator end() { return c_str() + length(); }
@@ -62,14 +68,12 @@ public:
         __backing = std::move(other.__backing);
         return *this;
     }
-    constexpr basic_string &operator+=(value_type ch)
-    {
-        if (__backing.size() == 0) __backing.emplace_back();
-        size_type len = length();
-        __backing.emplace_back(); // append nul terminator
-        __backing[len] = ch;
-        return *this;
-    }
+    constexpr basic_string &operator+=(value_type ch) { return append(ch); }
+    constexpr basic_string &operator+=(const basic_string &other) { return append(other); }
+    constexpr basic_string &operator+=(const_pointer other) { return append(other); }
+
+    constexpr reference operator[](size_type pos) { return c_str()[pos]; }
+    constexpr const_reference operator[](size_type pos) const { return c_str()[pos]; }
 
     constexpr int compare(const basic_string &str) const noexcept
     {
@@ -96,6 +100,42 @@ public:
         }
         if (i == length()) return 0;
         return 1;
+    }
+
+    constexpr basic_string &append(value_type ch)
+    {
+        if (__backing.size() == 0) __backing.emplace_back();
+        size_type len = length();
+        __backing.emplace_back(); // append nul terminator
+        __backing[len] = ch;
+        return *this;
+    }
+
+    constexpr basic_string &append(const basic_string &str)
+    {
+        __backing.reserve(size() + str.size() + 1);
+        if (!__backing.empty()) {
+            __backing.pop_back(); // pop nul terminator
+        }
+        for (size_type i = 0; i < str.size(); ++i) {
+            __backing.push_back(str[i]);
+        }
+        __backing.emplace_back(); // append nul terminator
+        return *this;
+    }
+
+    constexpr basic_string &append(const_pointer strz)
+    {
+        size_type strz_len = traits_type::length(strz);
+        __backing.reserve(size() + strz_len + 1);
+        if (!__backing.empty()) {
+            __backing.pop_back(); // pop nul terminator
+        }
+        for (size_type i = 0; i < strz_len; ++i) {
+            __backing.push_back(strz[i]);
+        }
+        __backing.emplace_back(); // append nul terminator
+        return *this;
     }
 
     template <typename T>
