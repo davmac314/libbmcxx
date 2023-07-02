@@ -208,6 +208,12 @@ public:
         return __storage[__limit - 1];
     }
 
+    constexpr void pop_back()
+    {
+        --__limit;
+        __storage[__limit].T::~T();
+    }
+
     T &operator[](size_type i) noexcept
     {
         return __storage[i];
@@ -223,6 +229,7 @@ public:
     constexpr size_type size() const noexcept { return __limit; }
     constexpr size_type capacity() const noexcept { return __capacity; }
     constexpr void reserve(size_type new_capacity) { __ensure_capacity(new_capacity, true); }
+    constexpr bool empty() const noexcept { return __limit == 0; }
 
     constexpr iterator begin() { return __storage; }
     constexpr iterator end() { return __storage + __limit; }
