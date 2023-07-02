@@ -210,6 +210,24 @@ template <class CharT, class Traits>
 constexpr bool operator>=(const CharT *a, const basic_string<CharT,Traits> &b) noexcept
 { return b.compare(a) <= 0; }
 
+template <class CharT, class Traits>
+constexpr basic_string<CharT,Traits> &operator+(const basic_string<CharT,Traits> &a,
+        const basic_string<CharT,Traits> &b)
+{
+    basic_string<CharT,Traits> r = a;
+    r.append(b);
+    return r;
+}
+
+template <class CharT, class Traits>
+constexpr basic_string<CharT,Traits> &operator+(const basic_string<CharT,Traits> &a,
+        const CharT *b)
+{
+    basic_string<CharT,Traits> r = a;
+    r.append(b);
+    return r;
+}
+
 } // namespace std
 
 #endif
