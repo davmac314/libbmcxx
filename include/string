@@ -228,6 +228,9 @@ constexpr basic_string<CharT,Traits> &operator+(const basic_string<CharT,Traits>
     return r;
 }
 
+string to_string(unsigned long);
+wstring to_wstring(unsigned long);
+
 } // namespace std
 
 #endif
