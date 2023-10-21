@@ -165,18 +165,6 @@ struct pair
     }
 };
 
-template <typename T> class reference_wrapper;
-
-namespace libstdbmcxx_utility {
-
-template <typename T>
-struct decay_refwrap { using type = T; };
-
-template <typename T>
-struct decay_refwrap<reference_wrapper<T>> { using type = T&; };
-
-} // namespace libstdbmcxx_utility
-
 template <typename T1, typename T2>
 pair<decay_t<T1>, decay_t<T2>> make_pair(T1 &&t1, T2 &&t2)
 {
