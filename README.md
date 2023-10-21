@@ -25,6 +25,7 @@ Currently provides (at least partial implementations of):
 - `vector` (rudimentary)
 - `unique_ptr` and `shared_ptr`
 - `pair` (but not yet `tuple`)
+- `to_string` and `from_chars` for (some) integer types
 - `terminate()` (calls `abort`)
 - a little bit of `atomic`
 - various standard new/delete overloads (which ultimately call `malloc`/`free`)
