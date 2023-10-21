@@ -72,8 +72,8 @@ public:
     constexpr basic_string &operator+=(const basic_string &other) { return append(other); }
     constexpr basic_string &operator+=(const_pointer other) { return append(other); }
 
-    constexpr reference operator[](size_type pos) { return c_str()[pos]; }
-    constexpr const_reference operator[](size_type pos) const { return c_str()[pos]; }
+    constexpr reference operator[](size_type pos) { return const_cast<char *>(c_str())[pos]; }
+    constexpr const_reference operator[](size_type pos) const { return const_cast<char *>(c_str())[pos]; }
 
     constexpr int compare(const basic_string &str) const noexcept
     {
