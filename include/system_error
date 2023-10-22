@@ -1,0 +1,12 @@
+#ifndef LIBBMCXX_SYSTEM_ERROR_INCLUDED
+#define LIBBMCXX_SYSTEM_ERROR_INCLUDED 1
+
+namespace std {
+
+enum class errc {
+    no_error = 0, invalid_argument, result_out_of_range
+};
+
+}
+
+#endif
