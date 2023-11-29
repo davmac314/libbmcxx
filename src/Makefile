@@ -3,6 +3,9 @@ CXXOBJS=terminate.o new_r.o new_n.o new_a.o new_an.o delete_r.o delete_rs.o dele
 	charconv.o
 COBJS=memcpy.o memset.o memmove.o memcmp.o
 
+CXX ?= g++
+CC ?= gcc
+
 # default, should be overridden:
 OUTDIR ::= .
 
@@ -12,10 +15,10 @@ all: $(CXXOBJS) $(COBJS) $(SOBJS)
 	ar r $(OUTDIR)/libbmcxx.a $(CXXOBJS) $(COBJS) $(SOBJS)
 
 $(CXXOBJS): %.o: %.cc
-	g++ $(CXXPPFLAGS) $(LIBBMCXX_CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXPPFLAGS) $(LIBBMCXX_CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(COBJS): %.o: %.c
-	gcc $(CPPFLAGS) $(LIBBMCXX_CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(LIBBMCXX_CPPFLAGS) $(CFLAGS) -c $< -o $@
 	
 clean:
 	rm -f $(COBJS) $(CXXOBJS)
