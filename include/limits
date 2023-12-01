@@ -1,7 +1,7 @@
 #ifndef LIBBMCXX_LIMITS_INCLUDED
 #define LIBBMCXX_LIMITS_INCLUDED 1
 
-#include <utility>
+#include <type_traits>
 
 // Numeric limits.
 // Note that we assume 2's complement representation, i.e. if max=N then min=-(N+1)
@@ -28,7 +28,7 @@ public:
     constexpr static T min() noexcept { return is_signed ? -max()-1 : 0; }
     constexpr static T max() noexcept {
         return is_signed ?
-            ~(((T)-1) << (sizeof(T) * __CHAR_BIT__ - 1)) : (T)-1;
+            (((typename make_unsigned<T>::type)-1) >> 1) : (T)-1;
     }
 };
 
