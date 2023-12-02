@@ -182,7 +182,8 @@ public:
     constexpr size_type max_size() const noexcept
     {
         // pick smallest maximum
-        auto __max_l = numeric_limits<size_type>::max() < numeric_limits<difference_type>::max()
+        using __bmcxx_unsigned_diff = typename make_unsigned<difference_type>::type;
+        auto __max_l = numeric_limits<size_type>::max() < (__bmcxx_unsigned_diff)numeric_limits<difference_type>::max()
             ? numeric_limits<size_type>::max() : numeric_limits<difference_type>::max();
         return __max_l / sizeof(T);
     }
