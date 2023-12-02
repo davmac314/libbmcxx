@@ -1,11 +1,24 @@
 #ifndef LIBBMCXX_VECTOR_INCLUDED
 #define LIBBMCXX_VECTOR_INCLUDED 1
 
+#include <bmcxx_config.h>
 #include <algorithm>
 #include <type_traits>
 #include <utility>
 #include <limits>
 #include <new>
+
+#if BMCXX_DISABLE_EXCEPTIONS
+#define BMCXX_THROW(x) __builtin_abort()
+#define BMCXX_RETHROW
+#define BMCXX_TRY
+#define BMCXX_CATCHALL
+#else
+#define BMCXX_THROW(x) throw (x)
+#define BMCXX_RETHROW throw
+#define BMCXX_TRY try
+#define BMCXX_CATCHALL catch(...)
+#endif
 
 namespace std {
 
@@ -51,7 +64,7 @@ struct __move_helper<T, false, false>
             while (i > 0) {
                 to[i].T::~T();
             }
-            throw;
+            BMCXX_RETHROW;
         }
     }
 };
@@ -90,18 +103,19 @@ private:
     size_type __limit = 0;
     size_type __capacity = 0;
 
-    bool __enlarge_capacity(size_type c) noexcept(is_nothrow_move_constructible<T>::value || is_nothrow_copy_constructible<T>::value)
+    bool __enlarge_capacity(size_type c)
+            noexcept(is_nothrow_move_constructible<T>::value || is_nothrow_copy_constructible<T>::value)
     {
         T *__new_storage = (T *)(new (nothrow) char[c * sizeof(T)]);
         if (__new_storage == nullptr) return false;
 
         // To transfer, we prefer move unless it is throwing and copy exists
-        try {
+        BMCXX_TRY {
             __bmcxx_vector::__move_helper<T>::move(__storage, __new_storage, __limit);
         }
-        catch (...) {
+        BMCXX_CATCHALL {
             delete [] (char *)__new_storage;
-            throw;
+            BMCXX_RETHROW;
         }
 
         delete[] (char *)__storage;
@@ -179,7 +193,7 @@ public:
     constexpr void push_back(const T &__val)
     {
         if (!__ensure_capacity(__limit + 1)) {
-            throw std::bad_alloc();
+            BMCXX_THROW(std::bad_alloc());
         }
 
         new (&__storage[__limit]) T(__val);
@@ -189,7 +203,7 @@ public:
     template <typename U = T, typename = enable_if_t<is_move_constructible<U>::value>>
     void push_back(T &&__val) {
         if (!__ensure_capacity(__limit + 1)) {
-            throw std::bad_alloc();
+            BMCXX_THROW(std::bad_alloc());
         }
 
         new (&__storage[__limit]) T(std::move(__val));
@@ -200,7 +214,7 @@ public:
     constexpr reference emplace_back(Args &&...arg)
     {
         if (!__ensure_capacity(__limit + 1)) {
-            throw std::bad_alloc();
+            BMCXX_THROW(std::bad_alloc());
         }
 
         new (&__storage[__limit]) T(forward<Args>(arg)...);
