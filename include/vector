@@ -33,6 +33,7 @@ template <typename T,
         bool __copy_is_noexcept = is_nothrow_copy_constructible<T>::value>
 struct __move_helper
 {
+    // default implementation: __use_move = false, __copy_is_noexcept = true
     static void move(T *from, T *to, size_type count) noexcept
     {
         // nothrow copy; we can safely copy-and-destruct as we go
@@ -64,13 +65,15 @@ struct __move_helper<T, false, false>
             while (i > 0) {
                 to[i].T::~T();
             }
+
+            delete [] (char *)to;
             BMCXX_RETHROW;
         }
     }
 };
 
-template <typename T, bool __dontcare>
-struct __move_helper<T, true, __dontcare>
+template <typename T, bool __BMCXX_dontcare>
+struct __move_helper<T, true, __BMCXX_dontcare>
 {
     // we always use noexcept, even if move may throw we cannot safely recover, so best
     // to terminate.
@@ -109,14 +112,9 @@ private:
         T *__new_storage = (T *)(new (nothrow) char[c * sizeof(T)]);
         if (__new_storage == nullptr) return false;
 
-        // To transfer, we prefer move unless it is throwing and copy exists
-        BMCXX_TRY {
-            __bmcxx_vector::__move_helper<T>::move(__storage, __new_storage, __limit);
-        }
-        BMCXX_CATCHALL {
-            delete [] (char *)__new_storage;
-            BMCXX_RETHROW;
-        }
+        // To transfer, we prefer move unless it is throwing and copy exists. The move_helper als
+        // takes care of cleanup in the case of exceptions.
+        __bmcxx_vector::__move_helper<T>::move(__storage, __new_storage, __limit);
 
         delete[] (char *)__storage;
         __storage = __new_storage;
