@@ -29,9 +29,9 @@ Currently provides (at least partial implementations of):
 - `terminate()` (calls `abort`)
 - a little bit of `atomic`
 - various standard new/delete overloads (which ultimately call `malloc`/`free`)
-- some of `type_traits`, `limits`
+- some of `type_traits`, `limits`, `utility`
 - some standard exception types via `exception`, `stdexcept`
-- very little of `algorithm`
+- very little (but some) of `algorithm`
 
 Client application must provide:
 - `abort()`

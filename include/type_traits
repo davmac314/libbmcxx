@@ -380,12 +380,13 @@ struct is_convertible<From, To,
 
 // is_assignable
 
-template <class To, class From, typename Enabler = true_type>
+template <class To, class From, typename Enabler = void>
 struct is_assignable : false_type { };
 
 template <class To, class From>
-struct is_assignable<To, From, std::integral_constant<bool,
-        std::is_void<decltype(void(libstdbmcxx_type_traits::declval<To>() = libstdbmcxx_type_traits::declval<From>()))>::value>> : true_type { };
+struct is_assignable<To, From,
+        decltype(void((To &)libstdbmcxx_type_traits::declval<To>() = libstdbmcxx_type_traits::declval<From>()))>
+        : true_type { };
 
 // This would also work instead of the above, but requires GCC 8+:
 //template <class To, class From>
@@ -426,6 +427,38 @@ struct is_trivially_copyable : std::integral_constant<bool, __is_trivially_copya
 template <class T>
 struct is_move_assignable : std::is_assignable<typename add_lvalue_reference<T>::type, typename add_rvalue_reference<const T>::type>
 { };
+
+template <class T>
+struct is_nothrow_move_assignable : std::is_nothrow_assignable<typename add_lvalue_reference<T>::type,
+        typename add_rvalue_reference<const T>::type>
+{ };
+
+// swappability:
+
+// must forward-declare swap function:
+template <class T, typename Enabler = enable_if_t<is_move_constructible<T>::value && is_move_assignable<T>::value>>
+constexpr void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value
+        && is_nothrow_move_assignable<T>::value);
+
+template <class T, typename Enabler = void> struct is_swappable; // forward
+
+template <class T, decltype(sizeof(int)) N, typename Enabler = enable_if_t<is_swappable<T&>::value>>
+constexpr void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(a[0],b[0])));
+
+template <class T, class U, class V = void>
+struct is_swappable_with : public false_type {};
+
+template <class T, class U>
+struct is_swappable_with<T, U, decltype((void)(swap(libstdbmcxx_type_traits::declval<T>(),
+        libstdbmcxx_type_traits::declval<U>(),
+        swap(libstdbmcxx_type_traits::declval<U>(), libstdbmcxx_type_traits::declval<T>()))))> : true_type {};
+
+template <class T, typename Enabler>
+struct is_swappable : public false_type {};
+
+template <class T>
+struct is_swappable<T, decltype(void(libstdbmcxx_type_traits::declval<T&>()))>
+        : public integral_constant<bool, is_swappable_with<T&,T&>::value> {};
 
 // is_integral:
 
