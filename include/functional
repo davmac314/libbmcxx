@@ -1,0 +1,80 @@
+#ifndef _BMCXX_FUNCTIONAL_INCLUDED
+#define _BMCXX_FUNCTIONAL_INCLUDED 1
+
+namespace std {
+
+namespace libstdbmcxx_functional {
+
+// use a local declval so we don't have to #include <utility>
+template<class T>
+T&& declval() noexcept;
+
+}
+
+inline namespace cxx20 {
+
+// less/greater: we assume 'a < b'/'a > b' provides a total order for pointers, technically it
+// depends on the implementation.
+// C++20 removes inheritance of binary_function, and various members as a result.
+
+template <typename T = void> struct less {
+    constexpr bool operator()(const T &lhs, const T &rhs) const {
+        return lhs < rhs;
+    }
+};
+
+template <> struct less<void> {
+    template <typename L, typename R>
+    constexpr decltype(libstdbmcxx_functional::declval<L>() < libstdbmcxx_functional::declval<R>())
+            operator()(const L &lhs, const R &rhs) const {
+        return lhs < rhs;
+    }
+};
+
+template <typename T = void> struct greater {
+    constexpr bool operator()(const T &lhs, const T &rhs) const {
+        return lhs > rhs;
+    }
+};
+
+template <> struct greater<void> {
+    template <typename L, typename R>
+    constexpr decltype(libstdbmcxx_functional::declval<L>() > libstdbmcxx_functional::declval<R>())
+            operator()(const L &lhs, const R &rhs) const {
+        return lhs > rhs;
+    }
+};
+
+template <typename T = void> struct equal_to {
+    constexpr bool operator()(const T &lhs, const T &rhs) const {
+        return lhs == rhs;
+    }
+};
+
+template <> struct equal_to<void> {
+    template <typename L, typename R>
+    constexpr decltype(libstdbmcxx_functional::declval<L>() == libstdbmcxx_functional::declval<R>())
+            operator()(const L &lhs, const R &rhs) const {
+        return lhs == rhs;
+    }
+};
+
+template <typename T = void> struct not_equal_to {
+    constexpr bool operator()(const T &lhs, const T &rhs) const {
+        return lhs != rhs;
+    }
+};
+
+template <> struct not_equal_to<void> {
+    template <typename L, typename R>
+    constexpr decltype(libstdbmcxx_functional::declval<L>() != libstdbmcxx_functional::declval<R>())
+            operator()(const L &lhs, const R &rhs) const {
+        return lhs != rhs;
+    }
+};
+
+} // cxx20
+
+}
+
+#endif /* _BMCXX_FUNCTIONAL_INCLUDED */
