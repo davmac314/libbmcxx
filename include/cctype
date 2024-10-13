@@ -1,0 +1,6 @@
+#ifndef __BMCXX_INCLUDED_CCTYPE
+#define __BMCXX_INCLUDED_CCTYPE 1
+
+#include <ctype.h>
+
+#endif
