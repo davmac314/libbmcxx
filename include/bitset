@@ -30,7 +30,7 @@ public:
     public:
         reference &operator=(bool x) noexcept
         {
-            unsigned mask = (unsigned)(-2) << bitnum;
+            unsigned mask = ~(1u << bitnum);
             *container &= mask;
             *container |= (x ? 1u : 0u) << bitnum;
             return *this;
