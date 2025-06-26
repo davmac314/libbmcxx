@@ -72,11 +72,13 @@ template <class T> struct atomic_base<T, type_classification::other>
     constexpr atomic_base(T desired) noexcept : value(desired) {}
     atomic_base(const atomic_base &) = delete;
 
+    [[gnu::always_inline]]
     void store(T desired, memory_order order = memory_order_seq_cst) noexcept
     {
         __atomic_store(&value, &desired, order);
     }
 
+    [[gnu::always_inline]]
     void store(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
     {
         __atomic_store(&value, &desired, order);
@@ -84,6 +86,7 @@ template <class T> struct atomic_base<T, type_classification::other>
 
     // In the following we may use a single-member union to avoid initialisation
 
+    [[gnu::always_inline]]
     T load(memory_order order = memory_order_seq_cst) const noexcept
     {
         union {
@@ -93,11 +96,13 @@ template <class T> struct atomic_base<T, type_classification::other>
         return mval.val;
     }
 
+    [[gnu::always_inline]]
     T load(memory_order order = memory_order_seq_cst) const volatile noexcept
     {
         return const_cast<remove_volatile<decltype(this)>>(this)->load(order);
     }
 
+    [[gnu::always_inline]]
     T exchange(T desired, memory_order order = memory_order_seq_cst) noexcept
     {
         union {
@@ -107,6 +112,7 @@ template <class T> struct atomic_base<T, type_classification::other>
         return mval.val;
     }
 
+    [[gnu::always_inline]]
     T exchange(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
     {
         return const_cast<remove_volatile<decltype(this)>>(this)->exchange(desired, order);
@@ -117,38 +123,122 @@ template <class T> struct atomic_base<T, type_classification::other>
 template <class T> struct atomic_base<T, type_classification::primitive> {
     T value;
 
+    [[gnu::always_inline]]
     constexpr atomic_base() noexcept(std::is_nothrow_default_constructible<T>::value) = default;
+
+    [[gnu::always_inline]]
     constexpr atomic_base(T desired) noexcept : value(desired) {}
+
     atomic_base(const atomic_base &) = delete;
 
+    [[gnu::always_inline]]
     void store(T desired, memory_order order = memory_order_seq_cst) noexcept
     {
         __atomic_store_n(&value, desired, order);
     }
 
+    [[gnu::always_inline]]
     void store(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
     {
         __atomic_store_n(&value, desired, order);
     }
 
+    [[gnu::always_inline]]
     T load(memory_order order = memory_order_seq_cst) const noexcept
     {
         return __atomic_load_n(&value, order);
     }
 
+    [[gnu::always_inline]]
     T load(memory_order order = memory_order_seq_cst) const volatile noexcept
     {
         return __atomic_load_n(&value, order);
     }
 
+    [[gnu::always_inline]]
     T exchange(T desired, memory_order order = memory_order_seq_cst) noexcept
     {
         return __atomic_exchange_n(&value, desired, order);
     }
 
+    [[gnu::always_inline]]
     T exchange(T desired, memory_order order = memory_order_seq_cst) volatile noexcept
     {
         return __atomic_exchange_n(&value, desired, order);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_weak(T& expected, T desired, std::memory_order success,
+            std::memory_order failure) noexcept
+    {
+        return __atomic_compare_exchange_n(&value, &expected, desired, true, success, failure);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_weak(T& expected, T desired, std::memory_order success,
+            std::memory_order failure) volatile noexcept
+    {
+        return __atomic_compare_exchange_n(&value, &expected, desired, true, success, failure);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_weak(T& expected, T desired, std::memory_order order) noexcept
+    {
+        std::memory_order failure;
+        if (order == std::memory_order_acq_rel) {
+            failure = std::memory_order_acquire;
+        }
+        else if (order == std::memory_order_release) {
+            failure = std::memory_order_relaxed;
+        }
+        else {
+            failure = order;
+        }
+        return __atomic_compare_exchange_n(&value, &expected, desired, true, order, failure);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_weak(T& expected, T desired, std::memory_order order) volatile noexcept
+    {
+        return const_cast<remove_volatile<decltype(this)>>(this)->compare_exchange_weak(expected,
+                desired, order);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_strong(T& expected, T desired, std::memory_order success,
+            std::memory_order failure) noexcept
+    {
+        return __atomic_compare_exchange_n(&value, &expected, desired, false, success, failure);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_strong(T& expected, T desired, std::memory_order success,
+            std::memory_order failure) volatile noexcept
+    {
+        return __atomic_compare_exchange_n(&value, &expected, desired, false, success, failure);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_strong(T& expected, T desired, std::memory_order order) noexcept
+    {
+        std::memory_order failure;
+        if (order == std::memory_order_acq_rel) {
+            failure = std::memory_order_acquire;
+        }
+        else if (order == std::memory_order_release) {
+            failure = std::memory_order_relaxed;
+        }
+        else {
+            failure = order;
+        }
+        return __atomic_compare_exchange_n(&value, &expected, desired, false, order, failure);
+    }
+
+    [[gnu::always_inline]]
+    bool compare_exchange_strong(T& expected, T desired, std::memory_order order) volatile noexcept
+    {
+        return const_cast<remove_volatile<decltype(this)>>(this)->compare_exchange_strong(expected,
+                desired, order);
     }
 };
 
@@ -161,10 +251,12 @@ template <class T> struct atomic_base<T, type_classification::pointer> : atomic_
 template <class T> struct atomic_base<T, type_classification::integral> : atomic_base<T, type_classification::primitive> {
     using atomic_base<T, type_classification::primitive>::atomic_base;
 
+    [[gnu::always_inline]]
     T fetch_add(T arg, memory_order order = memory_order_seq_cst) noexcept {
         return __atomic_fetch_add(&this->value, arg, order);
     }
 
+    [[gnu::always_inline]]
     T fetch_add(T arg, memory_order order = memory_order_seq_cst) volatile noexcept {
         return __atomic_fetch_add(&this->value, arg, order);
     }
@@ -181,14 +273,21 @@ template <class T> struct atomic : libbmcxx_atomic::atomic_base<T>
     static_assert(std::is_move_assignable<T>::value);
 
     constexpr atomic() noexcept(std::is_nothrow_default_constructible<T>::value) = default;
+
+    [[gnu::always_inline]]
     constexpr atomic(T desired) noexcept : libbmcxx_atomic::atomic_base<T>(desired) {}
+
     atomic(const atomic &) = delete;
 
     using libbmcxx_atomic::atomic_base<T>::store;
     using libbmcxx_atomic::atomic_base<T>::load;
 
+    [[gnu::always_inline]]
     T operator=(T desired) noexcept { store(desired); return desired; }
+
+    [[gnu::always_inline]]
     T operator=(T desired) volatile noexcept { store(desired); return desired; }
+
     atomic &operator=(const atomic &) = delete;
     atomic &operator=(const atomic &) volatile = delete;
 };
