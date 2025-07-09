@@ -436,14 +436,18 @@ struct is_nothrow_move_assignable : std::is_nothrow_assignable<typename add_lval
 // swappability:
 
 // must forward-declare swap function:
-template <class T, typename Enabler = enable_if_t<is_move_constructible<T>::value && is_move_assignable<T>::value>>
-constexpr void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value
+template <class T>
+constexpr
+enable_if_t<is_move_constructible<T>::value && is_move_assignable<T>::value, void>
+swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value
         && is_nothrow_move_assignable<T>::value);
 
 template <class T, typename Enabler = void> struct is_swappable; // forward
 
-template <class T, decltype(sizeof(int)) N, typename Enabler = enable_if_t<is_swappable<T&>::value>>
-constexpr void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(a[0],b[0])));
+template <class T, decltype(sizeof(int)) N>
+constexpr
+enable_if_t<is_swappable<T>::value, void>
+swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(a[0],b[0])));
 
 template <class T, class U, class V = void>
 struct is_swappable_with : public false_type {};

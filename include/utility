@@ -29,8 +29,10 @@ constexpr T&& forward(std::remove_reference_t<T>&& t) noexcept
     return static_cast<T&&>(t);
 }
 
-template <class T, typename Enabler = enable_if_t<is_move_constructible<T>::value && is_move_assignable<T>::value>>
-constexpr void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value
+template <class T>
+constexpr
+enable_if_t<is_move_constructible<T>::value && is_move_assignable<T>::value, void>
+swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value
         && is_nothrow_move_assignable<T>::value)
 {
     T c = move(a);
@@ -38,8 +40,10 @@ constexpr void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value
     b = move(c);
 }
 
-template <class T, decltype(sizeof(int)) N, typename Enabler= enable_if_t<is_swappable<T>::value>>
-constexpr void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(a[0],b[0])))
+template <class T, decltype(sizeof(int)) N>
+constexpr
+enable_if_t<is_swappable<T>::value, void>
+swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(a[0],b[0])))
 {
     for (decltype(N) i = 0; i < N; ++i) {
         T c = move(a[i]);
