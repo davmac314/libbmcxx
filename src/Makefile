@@ -6,6 +6,7 @@ NB_COBJS=memcpy.o memset.o memmove.o memcmp.o stpcpy.o strcmp.o strncmp.o strlen
 
 CXX ?= g++
 CC ?= gcc
+AR ?= ar
 
 # default, should be overridden:
 OUTDIR ::= .
@@ -13,7 +14,7 @@ OUTDIR ::= .
 LIBBMCXX_CPPFLAGS ::= -I../include
 
 all: $(CXXOBJS) $(NB_COBJS)
-	ar r $(OUTDIR)/libbmcxx.a $(CXXOBJS) $(NB_COBJS)
+	$(AR) r $(OUTDIR)/libbmcxx.a $(CXXOBJS) $(NB_COBJS)
 
 $(CXXOBJS): %.o: %.cc
 	$(CXX) $(CXXPPFLAGS) $(LIBBMCXX_CPPFLAGS) $(CXXFLAGS) -c $< -o $@

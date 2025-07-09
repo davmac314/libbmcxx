@@ -19,7 +19,7 @@ useful for bare metal including exception-less mode and float-less mode.
 
 
 Currently provides (at least partial implementations of):
-- C "string" functions: `memcpy`, `memset`, `memmove`, `memcmp`
+- C "string" functions: `memcpy`, `memset`, `memmove`, `memcmp`, `strlen`, `strcpy`, `strcmp`, etc
 - various C++ wrapper headers (`cstddef`, `cstdint`, etc)
 - `string_view` and variants, `string` and variants (rudimentary)
 - `vector` (rudimentary)
@@ -62,6 +62,26 @@ are:
    
    This is currently a no-op since at present there are no such functions implemented anyway...
 
+For build-time configuration, see comments in the top-level Makefile.
+
+
+## Incorporation
+
+To use, build via "make" and specify any desired parameters on the command line. Specify
+OUTDIR=... to indicate where the final library (`libbmcxx.a`) should be placed:
+
+    make CC=gcc CXX=g++ OUTDIR=/some/project/directory
+
+If not specified, defaults to using gcc/g++ and dropping the library in the "src" subdirectory.
+
+In general building for a bare-metal target may require compilation flags to be specified (via
+`CFLAGS`/`CXXFLAGS`).
+
+To change library configuration without modifying the included `bmcxx_config.h` file, copy the
+file to another directory and add that to the compiler's `#include` path (via
+`CPPFLAGS`/`CXXPPFLAGS`).
+
+
 ## Limitations / known issues
 
 - No floating point support
@@ -71,6 +91,7 @@ are:
   mainstream implementations. The issue is that a user may define a macro with the same name
   as the variable before including the header and cause chaos. Probably won't fix; code is
   easier to read this way, and users just "shouldn't do that".
+
 
 ## TODO
 

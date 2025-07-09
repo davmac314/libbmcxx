@@ -16,19 +16,22 @@
 #   require additional runtime support.
 #
 # CXXFLAGS
-#   C++ compilation options
+#   C++ compilation options. As for CFLAGS.
 #
 # CC
-#   The c compiler, eg gcc/clang
+#   The c compiler, eg gcc/clang.
 #
 # CXX
-#   The c++ compiler, eg g++/clang++
+#   The c++ compiler, eg g++/clang++.
+#
+# AR
+#   The "ar" (archive) utility, eg ar.
 #
 # Eg values:
 # CXXPPFLAGS=-nostdinc++
 # CXXFLAGS=-g -march=x86-64 -mno-sse -mno-red-zone -ffreestanding -fno-stack-protector
 
-export OUTDIR CPPFLAGS CXXPPFLAGS CFLAGS CXXFLAGS CC CXX
+export OUTDIR CPPFLAGS CXXPPFLAGS CFLAGS CXXFLAGS CC CXX AR
 
 all:
 	$(MAKE) -C src all
